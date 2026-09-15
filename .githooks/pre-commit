@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -e
+
+echo "Checking Rust formatting..."
+
+if ! cargo fmt --all -- --check; then
+    echo
+    echo "Formatting check failed."
+    echo "Run:"
+    echo "    cargo fmt --all"
+    echo
+    echo "Then stage the formatted files again."
+    exit 1
+fi
+
+echo "Formatting OK."
