@@ -1,7 +1,7 @@
-mod ast;
 mod lexer;
 mod scanner;
 mod token;
+mod parser;
 
 #[cfg(test)]
 mod tests;
