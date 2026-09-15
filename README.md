@@ -299,6 +299,6 @@ The intention is to let the compiler architecture emerge alongside the language 
 
 MicroC-RS is an independent Rust implementation of the **Micro C** language described in *Micro C — Aprendendo Compiladores*, by **Pedro Henrique** and **Brivaldo Junior**.
 
-The teaching material is licensed under the [Creative Commons Attribution-NonCommercial 3.0 Unported License](https://creativecommons.org/licenses/by-nc/3.0/). The original Micro C reference compiler described by the book is distributed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
+The teaching material is licensed under the [Creative Commons Attribution-NonCommercial 3.0 Unported License](https://creativecommons.org/licenses/by-nc/3.0/). The original Micro C compiler is available in the [WorksFacom/mcc](https://github.com/WorksFacom/mcc) repository, whose `LICENSE` file currently distributes the implementation under the [GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html).
 
 MicroC-RS is not a mechanical translation of the reference C implementation. The project does not copy or mechanically translate the original compiler source code; its Rust implementation is developed independently from the language specification, semantics, and compiler concepts presented in the teaching material.
