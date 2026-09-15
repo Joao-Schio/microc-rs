@@ -94,6 +94,17 @@ impl<'a> Parser<'a> {
                     expression: Box::new(expression),
                 })
             }
+
+            TokenType::Minus => {
+                self.advance();
+                let expression = self.parse_expression()?;
+
+                Ok(Expression::Unary {
+                    op: expression::UnaryOp::Negate,
+                    expression: Box::new(expression),
+                })
+            }
+
             found => Err(ParserError::UnexpectedToken {
                 expected: "expression",
                 found,

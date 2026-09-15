@@ -127,3 +127,26 @@ fn parses_logical_not_expression() {
         }
     );
 }
+
+#[test]
+fn parses_negative_number() {
+    let tokens = vec![
+        Token::new(TokenType::Minus, 1, b"-".to_vec()),
+        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    let expression = parser
+        .parse_expression()
+        .expect("negative number expression should parse");
+
+    assert_eq!(
+        expression,
+        Expression::Unary {
+            op: UnaryOp::Negate,
+            expression: Box::new(Expression::Integer(42)),
+        }
+    );
+}
