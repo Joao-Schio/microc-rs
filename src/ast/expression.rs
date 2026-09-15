@@ -37,4 +37,8 @@ pub enum Expression {
         op: BinaryOp,
         right: Box<Expression>,
     },
+    ArrayAccess {
+        array: Vec<u8>,
+        index: Box<Expression>,
+    },
 }
