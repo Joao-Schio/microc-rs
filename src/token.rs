@@ -41,11 +41,11 @@ pub enum TokenType {
 pub struct Token {
     tipo: TokenType,
     linha: usize,
-    lexema: String,
+    lexema: Vec<u8>,
 }
 
 impl Token {
-    pub fn new(tipo: TokenType, linha: usize, lexema: String) -> Self {
+    pub fn new(tipo: TokenType, linha: usize, lexema: Vec<u8>) -> Self {
         Self {
             tipo,
             linha,
@@ -57,7 +57,7 @@ impl Token {
         &self.tipo
     }
 
-    pub fn get_lexema(&self) -> &str {
+    pub fn get_lexema(&self) -> &[u8] {
         &self.lexema
     }
 }
