@@ -46,7 +46,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_expression(&mut self) -> Result<Expression, ParserError> {
-        self.parse_term()
+        self.parse_arithmetic()
     }
 
     fn parse_unary(&mut self, op: UnaryOp) -> Result<Expression, ParserError> {
@@ -121,6 +121,30 @@ impl<'a> Parser<'a> {
             self.advance();
 
             let right = self.parse_factor()?;
+
+            expression = Expression::Binary {
+                left: Box::new(expression),
+                op,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(expression)
+    }
+
+    fn parse_arithmetic(&mut self) -> Result<Expression, ParserError> {
+        let mut expression = self.parse_term()?;
+
+        loop {
+            let op = match *self.current().get_tok_type() {
+                TokenType::Plus => BinaryOp::Add,
+                TokenType::Minus => BinaryOp::Subtract,
+                _ => break,
+            };
+
+            self.advance();
+
+            let right = self.parse_term()?;
 
             expression = Expression::Binary {
                 left: Box::new(expression),
