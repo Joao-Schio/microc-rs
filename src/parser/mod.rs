@@ -1,5 +1,5 @@
 use crate::{
-    ast::expression::{Expression, UnaryOp},
+    ast::expression::{BinaryOp, Expression, UnaryOp},
     token::{Token, TokenType},
 };
 
@@ -46,7 +46,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_expression(&mut self) -> Result<Expression, ParserError> {
-        self.parse_factor()
+        self.parse_term()
     }
 
     fn parse_unary(&mut self, op: UnaryOp) -> Result<Expression, ParserError> {
@@ -105,5 +105,30 @@ impl<'a> Parser<'a> {
                 found,
             }),
         }
+    }
+
+    fn parse_term(&mut self) -> Result<Expression, ParserError> {
+        let mut expression = self.parse_factor()?;
+
+        loop {
+            let op = match *self.current().get_tok_type() {
+                TokenType::Mul => BinaryOp::Multiply,
+                TokenType::Div => BinaryOp::Divide,
+                TokenType::Mod => BinaryOp::Modulo,
+                _ => break,
+            };
+
+            self.advance();
+
+            let right = self.parse_factor()?;
+
+            expression = Expression::Binary {
+                left: Box::new(expression),
+                op,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(expression)
     }
 }

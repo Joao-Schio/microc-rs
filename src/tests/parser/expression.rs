@@ -1,5 +1,5 @@
 use crate::{
-    ast::expression::{Expression, UnaryOp},
+    ast::expression::{BinaryOp, Expression, UnaryOp},
     parser::{Parser, ParserError},
     token::{Token, TokenType},
 };
@@ -172,6 +172,31 @@ fn parses_chained_unary_expression() {
                 op: UnaryOp::Not,
                 expression: Box::new(Expression::Identifier(b"value".to_vec())),
             }),
+        }
+    );
+}
+
+#[test]
+fn parses_multiplication_expression() {
+    let tokens = vec![
+        Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
+        Token::new(TokenType::Mul, 1, b"*".to_vec()),
+        Token::new(TokenType::IntegerConst(3), 1, b"3".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    let expression = parser
+        .parse_expression()
+        .expect("multiplication expression should parse");
+
+    assert_eq!(
+        expression,
+        Expression::Binary {
+            left: Box::new(Expression::Integer(2)),
+            op: BinaryOp::Multiply,
+            right: Box::new(Expression::Integer(3)),
         }
     );
 }
