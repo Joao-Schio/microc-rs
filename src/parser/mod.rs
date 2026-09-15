@@ -27,30 +27,68 @@ impl<'a> Parser<'a> {
     fn advance(&mut self) {
         self.current += 1;
     }
+    fn expect(
+        &mut self,
+        expected: TokenType,
+        expected_description: &'static str,
+    ) -> Result<(), ParserError> {
+        let found = *self.current().get_tok_type();
 
+        if found != expected {
+            return Err(ParserError::UnexpectedToken {
+                expected: expected_description,
+                found,
+            });
+        }
+
+        self.advance();
+        Ok(())
+    }
+    
     pub fn parse_expression(&mut self) -> Result<Expression, ParserError> {
         self.parse_factor()
     }
 
-    pub fn parse_factor(&mut self) -> Result<Expression, ParserError> {
-        let token = self.current();
-        let expression = match *token.get_tok_type() {
-            TokenType::IntegerConst(value) => Expression::Integer(value),
-            TokenType::Id => Expression::Identifier(token.get_lexema().to_owned()),
-            TokenType::CharConst => Expression::Char(
-                *token
+    fn parse_factor(&mut self) -> Result<Expression, ParserError> {
+        match *self.current().get_tok_type() {
+            TokenType::IntegerConst(value) => {
+                self.advance();
+                Ok(Expression::Integer(value))
+            }
+
+            TokenType::Id => {
+                let identifier = self.current().get_lexema().to_owned();
+                self.advance();
+
+                Ok(Expression::Identifier(identifier))
+            }
+
+            TokenType::CharConst => {
+                let value = *self
+                    .current()
                     .get_lexema()
                     .first()
-                    .expect("char const must have a byte at index 0"),
-            ),
-            found => {
-                return Err(ParserError::UnexpectedToken {
-                    expected: "expression",
-                    found: found,
-                });
+                    .expect("char const must have a byte at index 0");
+
+                self.advance();
+
+                Ok(Expression::Char(value))
             }
-        };
-        self.advance();
-        Ok(expression)
+
+            TokenType::Lparen => {
+                self.advance();
+
+                let expression = self.parse_expression()?;
+
+                self.expect(TokenType::Rparen, "')'")?;
+
+                Ok(expression)
+            }
+
+            found => Err(ParserError::UnexpectedToken {
+                expected: "expression",
+                found,
+            }),
+        }
     }
 }
