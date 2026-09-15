@@ -35,3 +35,19 @@ fn non_expression_token_returns_parser_error() {
         })
     );
 }
+
+#[test]
+fn parses_identifier_expression() {
+    let tokens = vec![
+        Token::new(TokenType::Id, 1, b"value".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    let expression = parser
+        .parse_expression()
+        .expect("identifier expression should parse");
+
+    assert_eq!(expression, Expression::Identifier(b"value".to_vec()));
+}
