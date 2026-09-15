@@ -5,6 +5,24 @@ use crate::{
     token::{Token, TokenType},
 };
 
+
+pub fn tokenize<L: TLexer>(lexer: &mut L) -> Result<Vec<Token>, LexerError> {
+    let mut tokens = Vec::new();
+
+    loop {
+        let token = lexer.get_prox_token()?;
+        let is_eof = matches!(token.get_tok_type(), TokenType::Eof);
+
+        tokens.push(token);
+
+        if is_eof {
+            return Ok(tokens);
+        }
+    }
+}
+
+
+
 #[derive(Debug)]
 pub enum LexerError {
     Scanner(ScannerError),
