@@ -46,7 +46,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_expression(&mut self) -> Result<Expression, ParserError> {
-        self.parse_arithmetic()
+        self.parse_relational()
     }
 
     fn parse_unary(&mut self, op: UnaryOp) -> Result<Expression, ParserError> {
@@ -154,5 +154,29 @@ impl<'a> Parser<'a> {
         }
 
         Ok(expression)
+    }
+
+    fn parse_relational(&mut self) -> Result<Expression, ParserError> {
+        let left = self.parse_arithmetic()?;
+
+        let op = match *self.current().get_tok_type() {
+            TokenType::Eq => BinaryOp::Equal,
+            TokenType::Neq => BinaryOp::NotEqual,
+            TokenType::Lt => BinaryOp::Less,
+            TokenType::Leq => BinaryOp::LessEqual,
+            TokenType::Gt => BinaryOp::Greater,
+            TokenType::Geq => BinaryOp::GreaterEqual,
+            _ => return Ok(left),
+        };
+
+        self.advance();
+
+        let right = self.parse_arithmetic()?;
+
+        Ok(Expression::Binary {
+            left: Box::new(left),
+            op,
+            right: Box::new(right),
+        })
     }
 }

@@ -262,3 +262,28 @@ fn multiplication_has_higher_precedence_than_addition() {
         }
     );
 }
+
+#[test]
+fn parses_relational_expression() {
+    let tokens = vec![
+        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
+        Token::new(TokenType::Lt, 1, b"<".to_vec()),
+        Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    let expression = parser
+        .parse_expression()
+        .expect("relational expression should parse");
+
+    assert_eq!(
+        expression,
+        Expression::Binary {
+            left: Box::new(Expression::Integer(1)),
+            op: BinaryOp::Less,
+            right: Box::new(Expression::Integer(2)),
+        }
+    );
+}
