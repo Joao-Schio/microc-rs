@@ -22,15 +22,14 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_expression(&mut self) -> Result<Expression, ParserError> {
-        let expression = match self.tokens[self.current].get_tok_type() {
-            TokenType::IntegerConst(value) => Expression::Integer(*value),
-            TokenType::Id => {
-                Expression::Identifier(self.tokens[self.current].get_lexema().to_owned())
-            }
+        let token = &self.tokens[self.current];
+        let expression = match *token.get_tok_type() {
+            TokenType::IntegerConst(value) => Expression::Integer(value),
+            TokenType::Id => Expression::Identifier(token.get_lexema().to_owned()),
             found => {
                 return Err(ParserError::UnexpectedToken {
                     expected: "expression",
-                    found: *found,
+                    found: found,
                 });
             }
         };
