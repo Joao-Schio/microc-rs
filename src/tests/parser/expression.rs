@@ -51,3 +51,19 @@ fn parses_identifier_expression() {
 
     assert_eq!(expression, Expression::Identifier(b"value".to_vec()));
 }
+
+#[test]
+fn parses_char_expression() {
+    let tokens = vec![
+        Token::new(TokenType::CharConst, 1, b"a".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    let expression = parser
+        .parse_expression()
+        .expect("character expression should parse");
+
+    assert_eq!(expression, Expression::Char(b'a'));
+}

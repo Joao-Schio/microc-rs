@@ -26,6 +26,12 @@ impl<'a> Parser<'a> {
         let expression = match *token.get_tok_type() {
             TokenType::IntegerConst(value) => Expression::Integer(value),
             TokenType::Id => Expression::Identifier(token.get_lexema().to_owned()),
+            TokenType::CharConst => Expression::Char(
+                *token
+                    .get_lexema()
+                    .first()
+                    .expect("char const must have a byte at index 0"),
+            ),
             found => {
                 return Err(ParserError::UnexpectedToken {
                     expected: "expression",
