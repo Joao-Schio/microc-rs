@@ -85,3 +85,22 @@ fn parses_parenthesized_expression() {
 
     assert_eq!(expression, Expression::Integer(42));
 }
+
+#[test]
+fn parenthesized_expression_requires_closing_parenthesis() {
+    let tokens = vec![
+        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
+        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    assert_eq!(
+        parser.parse_expression(),
+        Err(ParserError::UnexpectedToken {
+            expected: "')'",
+            found: TokenType::Eof,
+        })
+    );
+}

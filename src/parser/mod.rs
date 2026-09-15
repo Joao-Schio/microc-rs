@@ -44,7 +44,7 @@ impl<'a> Parser<'a> {
         self.advance();
         Ok(())
     }
-    
+
     pub fn parse_expression(&mut self) -> Result<Expression, ParserError> {
         self.parse_factor()
     }
