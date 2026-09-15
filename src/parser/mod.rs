@@ -1,3 +1,5 @@
+use std::{error::Error, fmt};
+
 use crate::{
     ast::expression::{BinaryOp, Expression, UnaryOp},
     token::{Token, TokenType},
@@ -11,6 +13,20 @@ pub enum ParserError {
         line: usize,
     },
 }
+
+impl fmt::Display for ParserError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnexpectedToken {
+                expected,
+                found,
+                line,
+            } => write!(f, "expected {expected}, found {found:?} at line {line}"),
+        }
+    }
+}
+
+impl Error for ParserError {}
 
 pub struct Parser<'a> {
     tokens: &'a [Token],
