@@ -231,3 +231,34 @@ fn multiplicative_operators_are_left_associative() {
         }
     );
 }
+
+#[test]
+fn multiplication_has_higher_precedence_than_addition() {
+    let tokens = vec![
+        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
+        Token::new(TokenType::Plus, 1, b"+".to_vec()),
+        Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
+        Token::new(TokenType::Mul, 1, b"*".to_vec()),
+        Token::new(TokenType::IntegerConst(3), 1, b"3".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    let expression = parser
+        .parse_expression()
+        .expect("arithmetic expression should parse");
+
+    assert_eq!(
+        expression,
+        Expression::Binary {
+            left: Box::new(Expression::Integer(1)),
+            op: BinaryOp::Add,
+            right: Box::new(Expression::Binary {
+                left: Box::new(Expression::Integer(2)),
+                op: BinaryOp::Multiply,
+                right: Box::new(Expression::Integer(3)),
+            }),
+        }
+    );
+}
