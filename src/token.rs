@@ -60,4 +60,8 @@ impl Token {
     pub fn get_lexema(&self) -> &[u8] {
         &self.lexema
     }
+
+    pub fn get_linha(&self) -> usize {
+        self.linha
+    }
 }

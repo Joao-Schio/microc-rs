@@ -8,6 +8,7 @@ pub enum ParserError {
     UnexpectedToken {
         expected: &'static str,
         found: TokenType,
+        line: usize,
     },
 }
 
@@ -38,6 +39,7 @@ impl<'a> Parser<'a> {
             return Err(ParserError::UnexpectedToken {
                 expected: expected_description,
                 found,
+                line: self.current().get_linha(),
             });
         }
 
@@ -114,6 +116,7 @@ impl<'a> Parser<'a> {
             found => Err(ParserError::UnexpectedToken {
                 expected: "expression",
                 found,
+                line: self.current().get_linha(),
             }),
         }
     }

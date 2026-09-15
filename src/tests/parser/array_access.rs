@@ -51,6 +51,7 @@ fn array_access_requires_closing_bracket() {
         Err(ParserError::UnexpectedToken {
             expected: "']'",
             found: TokenType::Eof,
+            line: 1
         })
     );
 }

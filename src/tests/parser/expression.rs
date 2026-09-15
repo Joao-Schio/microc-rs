@@ -32,6 +32,7 @@ fn non_expression_token_returns_parser_error() {
         Err(ParserError::UnexpectedToken {
             expected: "expression",
             found: TokenType::Plus,
+            line: 1
         })
     );
 }
@@ -101,6 +102,7 @@ fn parenthesized_expression_requires_closing_parenthesis() {
         Err(ParserError::UnexpectedToken {
             expected: "')'",
             found: TokenType::Eof,
+            line: 1
         })
     );
 }
