@@ -5,7 +5,6 @@ use crate::{
     token::{Token, TokenType},
 };
 
-
 pub fn tokenize<L: TLexer>(lexer: &mut L) -> Result<Vec<Token>, LexerError> {
     let mut tokens = Vec::new();
 
@@ -20,8 +19,6 @@ pub fn tokenize<L: TLexer>(lexer: &mut L) -> Result<Vec<Token>, LexerError> {
         }
     }
 }
-
-
 
 #[derive(Debug)]
 pub enum LexerError {
