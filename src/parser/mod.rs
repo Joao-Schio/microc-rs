@@ -46,7 +46,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_expression(&mut self) -> Result<Expression, ParserError> {
-        self.parse_relational()
+        self.parse_logical()
     }
 
     fn parse_unary(&mut self, op: UnaryOp) -> Result<Expression, ParserError> {
@@ -178,5 +178,29 @@ impl<'a> Parser<'a> {
             op,
             right: Box::new(right),
         })
+    }
+
+    fn parse_logical(&mut self) -> Result<Expression, ParserError> {
+        let mut expression = self.parse_relational()?;
+
+        loop {
+            let op = match *self.current().get_tok_type() {
+                TokenType::And => BinaryOp::And,
+                TokenType::Or => BinaryOp::Or,
+                _ => break,
+            };
+
+            self.advance();
+
+            let right = self.parse_relational()?;
+
+            expression = Expression::Binary {
+                left: Box::new(expression),
+                op,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(expression)
     }
 }

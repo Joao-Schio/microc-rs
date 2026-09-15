@@ -287,3 +287,40 @@ fn parses_relational_expression() {
         }
     );
 }
+
+#[test]
+fn relational_operators_have_higher_precedence_than_logical_operators() {
+    let tokens = vec![
+        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
+        Token::new(TokenType::Lt, 1, b"<".to_vec()),
+        Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
+        Token::new(TokenType::And, 1, b"&&".to_vec()),
+        Token::new(TokenType::IntegerConst(3), 1, b"3".to_vec()),
+        Token::new(TokenType::Lt, 1, b"<".to_vec()),
+        Token::new(TokenType::IntegerConst(4), 1, b"4".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    let expression = parser
+        .parse_expression()
+        .expect("logical expression should parse");
+
+    assert_eq!(
+        expression,
+        Expression::Binary {
+            left: Box::new(Expression::Binary {
+                left: Box::new(Expression::Integer(1)),
+                op: BinaryOp::Less,
+                right: Box::new(Expression::Integer(2)),
+            }),
+            op: BinaryOp::And,
+            right: Box::new(Expression::Binary {
+                left: Box::new(Expression::Integer(3)),
+                op: BinaryOp::Less,
+                right: Box::new(Expression::Integer(4)),
+            }),
+        }
+    );
+}
