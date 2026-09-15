@@ -200,3 +200,34 @@ fn parses_multiplication_expression() {
         }
     );
 }
+
+#[test]
+fn multiplicative_operators_are_left_associative() {
+    let tokens = vec![
+        Token::new(TokenType::IntegerConst(8), 1, b"8".to_vec()),
+        Token::new(TokenType::Div, 1, b"/".to_vec()),
+        Token::new(TokenType::IntegerConst(4), 1, b"4".to_vec()),
+        Token::new(TokenType::Mul, 1, b"*".to_vec()),
+        Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    let expression = parser
+        .parse_expression()
+        .expect("multiplicative expression should parse");
+
+    assert_eq!(
+        expression,
+        Expression::Binary {
+            left: Box::new(Expression::Binary {
+                left: Box::new(Expression::Integer(8)),
+                op: BinaryOp::Divide,
+                right: Box::new(Expression::Integer(4)),
+            }),
+            op: BinaryOp::Multiply,
+            right: Box::new(Expression::Integer(2)),
+        }
+    );
+}
