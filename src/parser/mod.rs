@@ -20,9 +20,20 @@ impl<'a> Parser<'a> {
     pub fn new(tokens: &'a [Token]) -> Self {
         Self { tokens, current: 0 }
     }
+    fn current(&self) -> &Token {
+        &self.tokens[self.current]
+    }
+
+    fn advance(&mut self) {
+        self.current += 1;
+    }
 
     pub fn parse_expression(&mut self) -> Result<Expression, ParserError> {
-        let token = &self.tokens[self.current];
+        self.parse_factor()
+    }
+
+    pub fn parse_factor(&mut self) -> Result<Expression, ParserError> {
+        let token = self.current();
         let expression = match *token.get_tok_type() {
             TokenType::IntegerConst(value) => Expression::Integer(value),
             TokenType::Id => Expression::Identifier(token.get_lexema().to_owned()),
@@ -39,8 +50,7 @@ impl<'a> Parser<'a> {
                 });
             }
         };
-
-        self.current += 1;
+        self.advance();
         Ok(expression)
     }
 }
