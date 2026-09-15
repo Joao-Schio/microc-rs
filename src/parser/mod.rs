@@ -1,5 +1,5 @@
 use crate::{
-    ast::expression::Expression,
+    ast::expression::{self, Expression},
     token::{Token, TokenType},
 };
 
@@ -85,6 +85,15 @@ impl<'a> Parser<'a> {
                 Ok(expression)
             }
 
+            TokenType::Not => {
+                self.advance();
+                let expression = self.parse_expression()?;
+
+                Ok(Expression::Unary {
+                    op: expression::UnaryOp::Not,
+                    expression: Box::new(expression),
+                })
+            }
             found => Err(ParserError::UnexpectedToken {
                 expected: "expression",
                 found,

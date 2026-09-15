@@ -1,5 +1,5 @@
 use crate::{
-    ast::expression::Expression,
+    ast::expression::{Expression, UnaryOp},
     parser::{Parser, ParserError},
     token::{Token, TokenType},
 };
@@ -102,5 +102,28 @@ fn parenthesized_expression_requires_closing_parenthesis() {
             expected: "')'",
             found: TokenType::Eof,
         })
+    );
+}
+
+#[test]
+fn parses_logical_not_expression() {
+    let tokens = vec![
+        Token::new(TokenType::Not, 1, b"!".to_vec()),
+        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    let expression = parser
+        .parse_expression()
+        .expect("logical not expression should parse");
+
+    assert_eq!(
+        expression,
+        Expression::Unary {
+            op: UnaryOp::Not,
+            expression: Box::new(Expression::Integer(42)),
+        }
     );
 }
