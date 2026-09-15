@@ -85,6 +85,11 @@ pub(super) fn make_lexer_with_reserved_words(
     input: &str,
     reserved_words: HashMap<&'static str, TokenType>,
 ) -> Lexer<DummyScanner> {
+    let reserved_words: HashMap<&'static [u8], TokenType> = reserved_words
+        .into_iter()
+        .map(|(word, token_type)| (word.as_bytes(), token_type))
+        .collect();
+
     Lexer::new(DummyScanner::new(input), reserved_words)
 }
 
@@ -102,7 +107,7 @@ pub(super) fn assert_token<L: TLexer>(
         .unwrap_or_else(|error| panic!("expected token, got lexer error: {error:?}"));
 
     assert_eq!(token.get_tok_type(), &expected_type);
-    assert_eq!(token.get_lexema(), expected_lexeme);
+    assert_eq!(token.get_lexema(), expected_lexeme.as_bytes());
 }
 
 pub(super) fn assert_lexer_error<L: TLexer>(lexer: &mut L) -> LexerError {
