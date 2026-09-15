@@ -150,3 +150,28 @@ fn parses_negative_number() {
         }
     );
 }
+
+#[test]
+fn parses_chained_unary_expression() {
+    let tokens = vec![
+        Token::new(TokenType::Minus, 1, b"-".to_vec()),
+        Token::new(TokenType::Not, 1, b"!".to_vec()),
+        Token::new(TokenType::Id, 1, b"value".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    let expression = parser.parse_expression().unwrap();
+
+    assert_eq!(
+        expression,
+        Expression::Unary {
+            op: UnaryOp::Negate,
+            expression: Box::new(Expression::Unary {
+                op: UnaryOp::Not,
+                expression: Box::new(Expression::Identifier(b"value".to_vec())),
+            }),
+        }
+    );
+}
