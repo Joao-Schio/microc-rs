@@ -1,11 +1,15 @@
-pub mod ast;
+use crate::{
+    ast::expression::Expression,
+    token::{Token, TokenType},
+};
 
-use std::char::ParseCharError;
-
-use crate::{parser::ast::expression::Expression, token::{Token, TokenType}};
-
-
-
+#[derive(Debug, PartialEq, Eq)]
+pub enum ParserError {
+    UnexpectedToken {
+        expected: &'static str,
+        found: TokenType,
+    },
+}
 
 pub struct Parser<'a> {
     tokens: &'a [Token],
@@ -17,14 +21,18 @@ impl<'a> Parser<'a> {
         Self { tokens, current: 0 }
     }
 
-    pub fn parse_expression(&mut self) -> Result<Expression, ParseCharError> {
-        let saida = match self.tokens[self.current].get_tok_type() {
-            TokenType::IntegerConst(num) => {
-                 Ok(Expression::Integer(*num))
+    pub fn parse_expression(&mut self) -> Result<Expression, ParserError> {
+        let expression = match self.tokens[self.current].get_tok_type() {
+            TokenType::IntegerConst(value) => Expression::Integer(*value),
+            found => {
+                return Err(ParserError::UnexpectedToken {
+                    expected: "expression",
+                    found: *found,
+                });
             }
-            _ => todo!()
         };
+
         self.current += 1;
-        return saida;
+        Ok(expression)
     }
 }

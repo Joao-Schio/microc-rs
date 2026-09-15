@@ -3,6 +3,7 @@ pub enum UnaryOp {
     Not,
     Negate,
 }
+
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum BinaryOp {
     Add,
