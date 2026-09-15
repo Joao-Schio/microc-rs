@@ -1,5 +1,8 @@
 use crate::{
-    ast::expression::{self, Expression},
+    ast::expression::{
+        self, Expression,
+        UnaryOp::{self, Negate, Not},
+    },
     token::{Token, TokenType},
 };
 
@@ -49,6 +52,17 @@ impl<'a> Parser<'a> {
         self.parse_factor()
     }
 
+    fn parse_unary(&mut self, op: UnaryOp) -> Result<Expression, ParserError> {
+        self.advance();
+
+        let expression = self.parse_factor()?;
+
+        Ok(Expression::Unary {
+            op,
+            expression: Box::new(expression),
+        })
+    }
+
     fn parse_factor(&mut self) -> Result<Expression, ParserError> {
         match *self.current().get_tok_type() {
             TokenType::IntegerConst(value) => {
@@ -85,25 +99,9 @@ impl<'a> Parser<'a> {
                 Ok(expression)
             }
 
-            TokenType::Not => {
-                self.advance();
-                let expression = self.parse_expression()?;
+            TokenType::Not => self.parse_unary(Not),
 
-                Ok(Expression::Unary {
-                    op: expression::UnaryOp::Not,
-                    expression: Box::new(expression),
-                })
-            }
-
-            TokenType::Minus => {
-                self.advance();
-                let expression = self.parse_expression()?;
-
-                Ok(Expression::Unary {
-                    op: expression::UnaryOp::Negate,
-                    expression: Box::new(expression),
-                })
-            }
+            TokenType::Minus => self.parse_unary(Negate),
 
             found => Err(ParserError::UnexpectedToken {
                 expected: "expression",
