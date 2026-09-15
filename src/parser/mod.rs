@@ -70,20 +70,18 @@ impl<'a> Parser<'a> {
             TokenType::Id => {
                 let identifier = self.current().get_lexema().to_owned();
                 self.advance();
-                if *self.current().get_tok_type() != TokenType::LBrace {
+
+                if *self.current().get_tok_type() != TokenType::LBracket {
                     return Ok(Expression::Identifier(identifier));
                 }
-                let expression = self.parse_expression()?;
+
                 self.advance();
-                if *self.current().get_tok_type() != TokenType::RBrace {
-                    return Err(ParserError::UnexpectedToken {
-                        expected: "]",
-                        found: self.current().get_tok_type().clone(),
-                    });
-                }
+                let index = self.parse_expression()?;
+                self.expect(TokenType::RBracket, "']'")?;
+
                 Ok(Expression::ArrayAccess {
                     array: identifier,
-                    index: Box::new(expression),
+                    index: Box::new(index),
                 })
             }
 
