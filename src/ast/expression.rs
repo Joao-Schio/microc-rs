@@ -22,6 +22,7 @@ pub enum BinaryOp {
     Or,
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Expression {
     Integer(i64),
     Char(u8),
