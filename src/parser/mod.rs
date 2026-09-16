@@ -1,9 +1,13 @@
+mod expression;
+
 use std::{error::Error, fmt};
 
 use crate::{
-    ast::expression::{BinaryOp, Expression, UnaryOp},
+    ast::expression::Expression,
     token::{Token, TokenType},
 };
+
+pub use expression::{ExprParser, TExprParser};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParserError {
@@ -28,23 +32,25 @@ impl fmt::Display for ParserError {
 
 impl Error for ParserError {}
 
-pub struct Parser<'a> {
+pub struct ParserContext<'a> {
     tokens: &'a [Token],
     current: usize,
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a [Token]) -> Self {
+impl<'a> ParserContext<'a> {
+    fn new(tokens: &'a [Token]) -> Self {
         Self { tokens, current: 0 }
     }
-    fn current(&self) -> &Token {
+
+    pub(crate) fn current(&self) -> &Token {
         &self.tokens[self.current]
     }
 
-    fn advance(&mut self) {
+    pub(crate) fn advance(&mut self) {
         self.current += 1;
     }
-    fn expect(
+
+    pub(crate) fn expect(
         &mut self,
         expected: TokenType,
         expected_description: &'static str,
@@ -62,175 +68,28 @@ impl<'a> Parser<'a> {
         self.advance();
         Ok(())
     }
+}
+
+pub struct Parser<'a, E: TExprParser = ExprParser> {
+    context: ParserContext<'a>,
+    expr_parser: E,
+}
+
+impl<'a> Parser<'a, ExprParser> {
+    pub fn new(tokens: &'a [Token]) -> Self {
+        Self::with_expr_parser(tokens, ExprParser)
+    }
+}
+
+impl<'a, E: TExprParser> Parser<'a, E> {
+    pub fn with_expr_parser(tokens: &'a [Token], expr_parser: E) -> Self {
+        Self {
+            context: ParserContext::new(tokens),
+            expr_parser,
+        }
+    }
 
     pub fn parse_expression(&mut self) -> Result<Expression, ParserError> {
-        self.parse_logical()
-    }
-
-    fn parse_unary(&mut self, op: UnaryOp) -> Result<Expression, ParserError> {
-        self.advance();
-
-        let expression = self.parse_factor()?;
-
-        Ok(Expression::Unary {
-            op,
-            expression: Box::new(expression),
-        })
-    }
-
-    fn parse_factor(&mut self) -> Result<Expression, ParserError> {
-        match *self.current().get_tok_type() {
-            TokenType::IntegerConst(value) => {
-                self.advance();
-                Ok(Expression::Integer(value))
-            }
-
-            TokenType::Id => {
-                let identifier = self.current().get_lexema().to_owned();
-                self.advance();
-
-                if *self.current().get_tok_type() != TokenType::LBracket {
-                    return Ok(Expression::Identifier(identifier));
-                }
-
-                self.advance();
-                let index = self.parse_expression()?;
-                self.expect(TokenType::RBracket, "']'")?;
-
-                Ok(Expression::ArrayAccess {
-                    array: identifier,
-                    index: Box::new(index),
-                })
-            }
-
-            TokenType::CharConst => {
-                let value = *self
-                    .current()
-                    .get_lexema()
-                    .first()
-                    .expect("char const must have a byte at index 0");
-
-                self.advance();
-
-                Ok(Expression::Char(value))
-            }
-
-            TokenType::Lparen => {
-                self.advance();
-
-                let expression = self.parse_expression()?;
-
-                self.expect(TokenType::Rparen, "')'")?;
-
-                Ok(expression)
-            }
-
-            TokenType::Not => self.parse_unary(UnaryOp::Not),
-
-            TokenType::Minus => self.parse_unary(UnaryOp::Negate),
-
-            found => Err(ParserError::UnexpectedToken {
-                expected: "expression",
-                found,
-                line: self.current().get_linha(),
-            }),
-        }
-    }
-
-    fn parse_term(&mut self) -> Result<Expression, ParserError> {
-        let mut expression = self.parse_factor()?;
-
-        loop {
-            let op = match *self.current().get_tok_type() {
-                TokenType::Mul => BinaryOp::Multiply,
-                TokenType::Div => BinaryOp::Divide,
-                TokenType::Mod => BinaryOp::Modulo,
-                _ => break,
-            };
-
-            self.advance();
-
-            let right = self.parse_factor()?;
-
-            expression = Expression::Binary {
-                left: Box::new(expression),
-                op,
-                right: Box::new(right),
-            };
-        }
-
-        Ok(expression)
-    }
-
-    fn parse_arithmetic(&mut self) -> Result<Expression, ParserError> {
-        let mut expression = self.parse_term()?;
-
-        loop {
-            let op = match *self.current().get_tok_type() {
-                TokenType::Plus => BinaryOp::Add,
-                TokenType::Minus => BinaryOp::Subtract,
-                _ => break,
-            };
-
-            self.advance();
-
-            let right = self.parse_term()?;
-
-            expression = Expression::Binary {
-                left: Box::new(expression),
-                op,
-                right: Box::new(right),
-            };
-        }
-
-        Ok(expression)
-    }
-
-    fn parse_relational(&mut self) -> Result<Expression, ParserError> {
-        let left = self.parse_arithmetic()?;
-
-        let op = match *self.current().get_tok_type() {
-            TokenType::Eq => BinaryOp::Equal,
-            TokenType::Neq => BinaryOp::NotEqual,
-            TokenType::Lt => BinaryOp::Less,
-            TokenType::Leq => BinaryOp::LessEqual,
-            TokenType::Gt => BinaryOp::Greater,
-            TokenType::Geq => BinaryOp::GreaterEqual,
-            _ => return Ok(left),
-        };
-
-        self.advance();
-
-        let right = self.parse_arithmetic()?;
-
-        Ok(Expression::Binary {
-            left: Box::new(left),
-            op,
-            right: Box::new(right),
-        })
-    }
-
-    fn parse_logical(&mut self) -> Result<Expression, ParserError> {
-        let mut expression = self.parse_relational()?;
-
-        loop {
-            let op = match *self.current().get_tok_type() {
-                TokenType::And => BinaryOp::And,
-                TokenType::Or => BinaryOp::Or,
-                _ => break,
-            };
-
-            self.advance();
-
-            let right = self.parse_relational()?;
-
-            expression = Expression::Binary {
-                left: Box::new(expression),
-                op,
-                right: Box::new(right),
-            };
-        }
-
-        Ok(expression)
+        self.expr_parser.parse_expression(&mut self.context)
     }
 }
