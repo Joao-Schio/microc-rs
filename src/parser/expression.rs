@@ -31,10 +31,7 @@ impl ExprParser {
         })
     }
 
-    fn parse_factor(
-        &mut self,
-        context: &mut ParserContext<'_>,
-    ) -> Result<Expression, ParserError> {
+    fn parse_factor(&mut self, context: &mut ParserContext<'_>) -> Result<Expression, ParserError> {
         match *context.current().get_tok_type() {
             TokenType::IntegerConst(value) => {
                 context.advance();
@@ -93,10 +90,7 @@ impl ExprParser {
         }
     }
 
-    fn parse_term(
-        &mut self,
-        context: &mut ParserContext<'_>,
-    ) -> Result<Expression, ParserError> {
+    fn parse_term(&mut self, context: &mut ParserContext<'_>) -> Result<Expression, ParserError> {
         let mut expression = self.parse_factor(context)?;
 
         loop {
