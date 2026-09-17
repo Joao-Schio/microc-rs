@@ -16,6 +16,7 @@ pub trait TExprParser {
 pub struct ExprParser;
 
 impl ExprParser {
+    #[inline]
     fn parse_unary(
         &mut self,
         context: &mut ParserContext<'_>,
@@ -31,6 +32,7 @@ impl ExprParser {
         })
     }
 
+    #[inline]
     fn parse_factor(&mut self, context: &mut ParserContext<'_>) -> Result<Expression, ParserError> {
         match *context.current().get_tok_type() {
             TokenType::IntegerConst(value) => {
@@ -90,6 +92,7 @@ impl ExprParser {
         }
     }
 
+    #[inline]
     fn parse_term(&mut self, context: &mut ParserContext<'_>) -> Result<Expression, ParserError> {
         let mut expression = self.parse_factor(context)?;
 
@@ -115,6 +118,7 @@ impl ExprParser {
         Ok(expression)
     }
 
+    #[inline]
     fn parse_arithmetic(
         &mut self,
         context: &mut ParserContext<'_>,
@@ -142,6 +146,7 @@ impl ExprParser {
         Ok(expression)
     }
 
+    #[inline]
     fn parse_relational(
         &mut self,
         context: &mut ParserContext<'_>,
@@ -169,6 +174,7 @@ impl ExprParser {
         })
     }
 
+    #[inline]
     fn parse_logical(
         &mut self,
         context: &mut ParserContext<'_>,
