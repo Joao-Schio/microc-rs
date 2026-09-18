@@ -81,6 +81,19 @@ impl<'a> Parser<'a, ExprParser> {
     pub fn new(tokens: &'a [Token]) -> Self {
         Self::with_expr_parser(tokens, ExprParser)
     }
+}
+
+impl<'a, E: TExprParser> Parser<'a, E> {
+    pub fn with_expr_parser(tokens: &'a [Token], expr_parser: E) -> Self {
+        Self {
+            context: ParserContext::new(tokens),
+            expr_parser,
+        }
+    }
+
+    pub fn parse_expression(&mut self) -> Result<Expression, ParserError> {
+        self.expr_parser.parse_expression(&mut self.context)
+    }
 
     fn parse_assignment_target(&mut self) -> Result<AssignmentTarget, ParserError> {
         let identifier = self.context.current().get_lexema().to_owned();
@@ -105,18 +118,5 @@ impl<'a> Parser<'a, ExprParser> {
         let value = self.expr_parser.parse_expression(&mut self.context)?;
         self.context.expect(TokenType::SemiColon, "';'")?;
         Ok(Statement::Assignment { target, value })
-    }
-}
-
-impl<'a, E: TExprParser> Parser<'a, E> {
-    pub fn with_expr_parser(tokens: &'a [Token], expr_parser: E) -> Self {
-        Self {
-            context: ParserContext::new(tokens),
-            expr_parser,
-        }
-    }
-
-    pub fn parse_expression(&mut self) -> Result<Expression, ParserError> {
-        self.expr_parser.parse_expression(&mut self.context)
     }
 }
