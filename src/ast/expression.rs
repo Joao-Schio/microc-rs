@@ -41,4 +41,8 @@ pub enum Expression {
         array: Vec<u8>,
         index: Box<Expression>,
     },
+    Call {
+        callee: Vec<u8>,
+        arguments: Vec<Expression>,
+    },
 }

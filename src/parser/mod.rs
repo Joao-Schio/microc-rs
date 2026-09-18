@@ -56,7 +56,6 @@ impl<'a> ParserContext<'a> {
         expected_description: &'static str,
     ) -> Result<(), ParserError> {
         let found = *self.current().get_tok_type();
-
         if found != expected {
             return Err(ParserError::UnexpectedToken {
                 expected: expected_description,

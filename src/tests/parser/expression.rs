@@ -308,6 +308,24 @@ macro_rules! expression_parser_contract {
                     })
                 );
             }
+
+            #[test]
+            fn parses_function_call_without_arguments() {
+                let tokens = vec![
+                    Token::new(TokenType::Id, 1, b"foo".to_vec()),
+                    Token::new(TokenType::Lparen, 1, b"(".to_vec()),
+                    Token::new(TokenType::Rparen, 1, b")".to_vec()),
+                    Token::new(TokenType::Eof, 1, vec![]),
+                ];
+
+                assert_eq!(
+                    parse(&tokens),
+                    Ok(Expression::Call {
+                        callee: b"foo".to_vec(),
+                        arguments: vec![],
+                    })
+                );
+            }
         }
     };
 }

@@ -38,6 +38,7 @@ pub enum TokenType {
     Print,
 }
 
+#[derive(Debug)]
 pub struct Token {
     tipo: TokenType,
     linha: usize,

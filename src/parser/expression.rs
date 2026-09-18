@@ -1,3 +1,5 @@
+use std::thread::current;
+
 use crate::{
     ast::expression::{BinaryOp, Expression, UnaryOp},
     token::TokenType,
@@ -32,6 +34,77 @@ impl ExprParser {
         })
     }
 
+    fn parse_array_access(
+        &mut self,
+        context: &mut ParserContext<'_>,
+        identifier: Vec<u8>,
+    ) -> Result<Expression, ParserError> {
+        context.advance();
+        let expr = self.parse_expression(context)?;
+        context.expect(TokenType::RBracket, "']'")?;
+        Ok(Expression::ArrayAccess {
+            array: identifier,
+            index: Box::new(expr),
+        })
+    }
+
+    fn parse_optional_expression(
+        &mut self,
+        context: &mut ParserContext<'_>,
+    ) -> Result<Option<Expression>, ParserError> {
+        if *context.current().get_tok_type() != TokenType::Rparen {
+            return Ok(Some(self.parse_expression(context)?));
+        }
+        Ok(None)
+    }
+
+    fn parse_arguments(
+        &mut self,
+        context: &mut ParserContext<'_>,
+        first: Expression,
+    ) -> Result<Vec<Expression>, ParserError> {
+        let mut arguments = vec![first];
+        while *context.current().get_tok_type() != TokenType::Rparen {
+            context.expect(TokenType::Comma, "','")?;
+            let arg = self.parse_expression(context)?;
+            arguments.push(arg);
+        }
+        context.advance();
+        Ok(arguments)
+    }
+
+    fn parse_call(
+        &mut self,
+        context: &mut ParserContext<'_>,
+        identifier: Vec<u8>,
+    ) -> Result<Expression, ParserError> {
+        context.expect(TokenType::Lparen, "'('")?;
+        let args = match self.parse_optional_expression(context)? {
+            None => vec![],
+            Some(arg) => self.parse_arguments(context, arg)?,
+        };
+
+        Ok(Expression::Call {
+            callee: identifier,
+            arguments: args,
+        })
+    }
+
+    #[inline]
+    fn parse_identifier(
+        &mut self,
+        context: &mut ParserContext<'_>,
+    ) -> Result<Expression, ParserError> {
+        let identifier = context.current().get_lexema().to_owned();
+        context.advance();
+
+        match *context.current().get_tok_type() {
+            TokenType::LBracket => self.parse_array_access(context, identifier),
+            TokenType::Lparen => self.parse_call(context, identifier),
+            _ => Ok(Expression::Identifier(identifier)),
+        }
+    }
+
     #[inline]
     fn parse_factor(&mut self, context: &mut ParserContext<'_>) -> Result<Expression, ParserError> {
         match *context.current().get_tok_type() {
@@ -40,23 +113,7 @@ impl ExprParser {
                 Ok(Expression::Integer(value))
             }
 
-            TokenType::Id => {
-                let identifier = context.current().get_lexema().to_owned();
-                context.advance();
-
-                if *context.current().get_tok_type() != TokenType::LBracket {
-                    return Ok(Expression::Identifier(identifier));
-                }
-
-                context.advance();
-                let index = self.parse_expression(context)?;
-                context.expect(TokenType::RBracket, "']'")?;
-
-                Ok(Expression::ArrayAccess {
-                    array: identifier,
-                    index: Box::new(index),
-                })
-            }
+            TokenType::Id => self.parse_identifier(context),
 
             TokenType::CharConst => {
                 let value = *context
