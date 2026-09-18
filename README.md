@@ -1,5 +1,9 @@
 # MicroC-RS
 
+<p align="center">
+  <img src="https://www.rust-lang.org/logos/rust-logo-512x512.png" alt="Rust logo" width="120" />
+</p>
+
 [![CI](https://github.com/Joao-Schio/Lexer/actions/workflows/ci.yml/badge.svg)](https://github.com/Joao-Schio/Lexer/actions/workflows/ci.yml)
 [![Coverage](.github/badges/coverage.svg)](https://github.com/Joao-Schio/microc-rs/actions/workflows/coverage.yml)
 
