@@ -138,7 +138,11 @@ impl<'a, E: TExprParser> Parser<'a, E> {
         match *self.context.current().get_tok_type() {
             TokenType::Id => self.parse_assignment(),
             TokenType::Return => self.parse_return(),
-            _ => panic!("Expected a statement"),
+            found => Err(ParserError::UnexpectedToken {
+                expected: "statement",
+                found,
+                line: self.context.current().get_linha(),
+            }),
         }
     }
 }
