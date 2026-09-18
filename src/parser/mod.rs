@@ -7,10 +7,7 @@ use crate::{
         expression::Expression,
         statement::{AssignmentTarget, Statement},
     },
-    token::{
-        Token,
-        TokenType::{self, LBrace},
-    },
+    token::{Token, TokenType},
 };
 
 pub use expression::{ExprParser, TExprParser};
@@ -106,6 +103,7 @@ impl<'a> Parser<'a, ExprParser> {
         let target = self.parse_assignment_target()?;
         self.context.expect(TokenType::Assign, "'='")?;
         let value = self.expr_parser.parse_expression(&mut self.context)?;
+        self.context.expect(TokenType::SemiColon, "';'")?;
         Ok(Statement::Assignment { target, value })
     }
 }
