@@ -1,6 +1,7 @@
 # MicroC-RS
 
 [![CI](https://github.com/Joao-Schio/Lexer/actions/workflows/ci.yml/badge.svg)](https://github.com/Joao-Schio/Lexer/actions/workflows/ci.yml)
+[![Coverage](.github/badges/coverage.svg)](https://github.com/Joao-Schio/microc-rs/actions/workflows/coverage.yml)
 
 A from-scratch implementation of the **Micro C** compiler written in Rust.
 
@@ -195,6 +196,14 @@ Run the test suite with:
 
 ```bash
 cargo test
+```
+
+Line coverage is measured in CI with `cargo-llvm-cov`, and the coverage badge at the top of this README is updated from the `main` branch.
+
+To generate a coverage report locally:
+
+```bash
+cargo llvm-cov --workspace --all-features
 ```
 
 ## Building

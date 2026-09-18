@@ -1,0 +1,70 @@
+name: Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Generate coverage summary
+        run: cargo llvm-cov --workspace --all-features --json --summary-only --output-path coverage.json
+
+      - name: Generate coverage badge
+        run: python3 .github/scripts/generate_coverage_badge.py coverage.json .github/badges/coverage.svg
+
+      - name: Upload coverage badge artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-badge
+          path: .github/badges/coverage.svg
+
+  update-badge:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download coverage badge
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-badge
+          path: .github/badges
+
+      - name: Commit updated coverage badge
+        run: |
+          if git diff --quiet -- .github/badges/coverage.svg; then
+            echo "Coverage badge is already up to date"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/badges/coverage.svg
+          git commit -m "chore: update coverage badge"
+          git push
