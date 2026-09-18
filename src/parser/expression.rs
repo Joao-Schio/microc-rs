@@ -1,5 +1,3 @@
-use std::thread::current;
-
 use crate::{
     ast::expression::{BinaryOp, Expression, UnaryOp},
     token::TokenType,
@@ -48,28 +46,20 @@ impl ExprParser {
         })
     }
 
-    fn parse_optional_expression(
-        &mut self,
-        context: &mut ParserContext<'_>,
-    ) -> Result<Option<Expression>, ParserError> {
-        if *context.current().get_tok_type() != TokenType::Rparen {
-            return Ok(Some(self.parse_expression(context)?));
-        }
-        Ok(None)
-    }
-
     fn parse_arguments(
         &mut self,
         context: &mut ParserContext<'_>,
-        first: Expression,
     ) -> Result<Vec<Expression>, ParserError> {
+        if *context.current().get_tok_type() == TokenType::Rparen {
+            return Ok(Vec::new());
+        }
+        let first = self.parse_expression(context)?;
         let mut arguments = vec![first];
-        while *context.current().get_tok_type() != TokenType::Rparen {
-            context.expect(TokenType::Comma, "','")?;
+        while *context.current().get_tok_type() == TokenType::Comma {
+            context.advance();
             let arg = self.parse_expression(context)?;
             arguments.push(arg);
         }
-        context.advance();
         Ok(arguments)
     }
 
@@ -79,11 +69,8 @@ impl ExprParser {
         identifier: Vec<u8>,
     ) -> Result<Expression, ParserError> {
         context.expect(TokenType::Lparen, "'('")?;
-        let args = match self.parse_optional_expression(context)? {
-            None => vec![],
-            Some(arg) => self.parse_arguments(context, arg)?,
-        };
-
+        let args = self.parse_arguments(context)?;
+        context.expect(TokenType::Rparen, "')'")?;
         Ok(Expression::Call {
             callee: identifier,
             arguments: args,
