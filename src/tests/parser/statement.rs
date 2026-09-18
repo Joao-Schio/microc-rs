@@ -243,3 +243,22 @@ fn parses_assignment_followed_by_return() {
         })
     );
 }
+
+#[test]
+fn rejects_invalid_statement_start() {
+    let tokens = vec![
+        Token::new(TokenType::Plus, 7, b"+".to_vec()),
+        Token::new(TokenType::Eof, 7, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    assert_eq!(
+        parser.parse_statement(),
+        Err(ParserError::UnexpectedToken {
+            expected: "statement",
+            found: TokenType::Plus,
+            line: 7,
+        })
+    );
+}
