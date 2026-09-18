@@ -15,4 +15,7 @@ pub enum Statement {
         target: AssignmentTarget,
         value: Expression,
     },
+    Return {
+        value: Option<Expression>,
+    },
 }

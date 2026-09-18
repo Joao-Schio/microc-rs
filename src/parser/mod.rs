@@ -7,7 +7,10 @@ use crate::{
         expression::Expression,
         statement::{AssignmentTarget, Statement},
     },
-    token::{Token, TokenType},
+    token::{
+        Token,
+        TokenType::{self, SemiColon},
+    },
 };
 
 pub use expression::{ExprParser, TExprParser};
@@ -112,11 +115,30 @@ impl<'a, E: TExprParser> Parser<'a, E> {
         }
     }
 
-    pub fn parse_statement(&mut self) -> Result<Statement, ParserError> {
+    fn parse_assignment(&mut self) -> Result<Statement, ParserError> {
         let target = self.parse_assignment_target()?;
         self.context.expect(TokenType::Assign, "'='")?;
         let value = self.expr_parser.parse_expression(&mut self.context)?;
         self.context.expect(TokenType::SemiColon, "';'")?;
         Ok(Statement::Assignment { target, value })
+    }
+
+    fn parse_return(&mut self) -> Result<Statement, ParserError> {
+        self.context.expect(TokenType::Return, "'return'")?;
+
+        let value = match *self.context.current().get_tok_type() {
+            TokenType::SemiColon => None,
+            _ => Some(self.expr_parser.parse_expression(&mut self.context)?),
+        };
+        self.context.expect(TokenType::SemiColon, "';'")?;
+        Ok(Statement::Return { value })
+    }
+
+    pub fn parse_statement(&mut self) -> Result<Statement, ParserError> {
+        match *self.context.current().get_tok_type() {
+            TokenType::Id => self.parse_assignment(),
+            TokenType::Return => self.parse_return(),
+            _ => panic!("Expected a statement"),
+        }
     }
 }
