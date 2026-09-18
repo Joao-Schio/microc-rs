@@ -108,13 +108,10 @@ Typed AST
 Semantic Analysis
   |
   v
-x86-64 Code Generation
+LLVM IR Generation
   |
   v
-GNU/AT&T Assembly
-  |
-  v
-Assembler / Linker
+LLVM Toolchain
   |
   v
 Native Executable
@@ -122,11 +119,11 @@ Native Executable
 
 Compiler phases communicate through typed in-memory structures rather than intermediate files.
 
-Representations such as token dumps, AST output, semantic information, and generated assembly may eventually be exposed through the CLI for debugging and inspection, but they are not used as file-based communication mechanisms between compiler stages.
+Representations such as token dumps, AST output, semantic information, and generated LLVM IR may eventually be exposed through the CLI for debugging and inspection, but they are not used as file-based communication mechanisms between compiler stages.
 
-The initial execution target is **Linux x86-64 using the System V ABI and GNU/AT&T assembly syntax**. The compiler itself is intended to remain runnable on macOS/Apple Silicon while emitting code for the Linux target.
+The initial execution target remains **Linux x86-64**, while the compiler itself is intended to remain runnable on macOS/Apple Silicon. Using LLVM IR keeps the frontend independent from the details of register allocation, calling-convention lowering, stack management, and final machine-code generation.
 
-LLVM is not part of the V1 backend plan. It may be explored later as an additional backend, but the first compiler backend is intentionally handwritten.
+V1 will favor generating **textual LLVM IR** and delegating native lowering to the LLVM toolchain rather than immediately introducing a Rust LLVM binding. A handwritten x86-64 backend remains a useful future learning milestone, but it is deliberately deferred until the frontend and LLVM-backed compiler are complete.
 
 ## Current Structure
 
@@ -285,21 +282,19 @@ The repository's CI runs formatting checks and the test suite, while the coverag
 
 ## Backend
 
-MicroC-RS V1 will use a handwritten native backend targeting:
+MicroC-RS V1 will generate **LLVM IR** and rely on the LLVM toolchain for lowering to native code.
 
-- Linux x86-64 / AMD64
-- System V ABI
-- GNU/AT&T assembly syntax
+The frontend remains responsible for lexical analysis, parsing, AST construction, semantic analysis, type checking, control-flow representation, and lowering Micro C semantics into LLVM IR.
 
-The frontend remains responsible for lexical analysis, parsing, AST construction, semantic analysis, type checking, and lowering Micro C semantics into a form suitable for code generation.
+The first backend implementation will intentionally emit straightforward textual LLVM IR. Mutable variables can initially be represented using operations such as `alloca`, `load`, and `store`, allowing LLVM to perform later optimization and SSA promotion instead of requiring MicroC-RS to implement those transformations immediately.
 
-Stack-frame layout will be calculated from the program being compiled rather than relying on arbitrary fixed offsets.
+This keeps V1 focused on the compiler concepts specific to Micro C while delegating register allocation, ABI lowering, stack layout, instruction selection, assembly generation, and machine-code emission to LLVM.
 
-LLVM is intentionally outside V1 so the project can retain the educational value of implementing its own backend. An LLVM backend may be explored later as an additional target rather than replacing the handwritten backend.
+A handwritten Linux x86-64 backend using the System V ABI and GNU/AT&T assembly remains planned as future work after the LLVM-backed compiler is complete.
 
 ## Roadmap
 
-### V1 — Native Micro C compiler
+### V1 — LLVM-backed Micro C compiler
 
 - [x] Scanner foundation
 - [x] Lexical analyzer and typed lexical errors
@@ -314,15 +309,22 @@ LLVM is intentionally outside V1 so the project can retain the educational value
 - [ ] Function definitions and complete program parsing
 - [ ] Complete typed AST
 - [ ] Semantic analysis and symbol tables
-- [ ] Linux x86-64 System V code generation
-- [ ] Stack-frame layout
-- [ ] GNU/AT&T assembly generation
+- [ ] LLVM IR generation
+- [ ] LLVM toolchain integration
 - [ ] Compiler CLI
 - [ ] End-to-end Micro C programs
 
-### Future work
+### Future handwritten backend
 
-Potential post-V1 work may include additional backends, targets, language features, and optimization experiments. Those are deliberately deferred until the original Micro C implementation is complete.
+After V1, a second backend may be implemented as a deeper backend/code-generation exercise:
+
+- [ ] Linux x86-64 / AMD64 target
+- [ ] System V ABI lowering
+- [ ] Stack-frame layout
+- [ ] Register and temporary-value strategy
+- [ ] GNU/AT&T assembly generation
+
+Additional targets, language features, and optimization experiments are deliberately deferred until the original Micro C implementation is complete.
 
 ## Design Philosophy
 
