@@ -1,9 +1,9 @@
 use crate::{
     ast::{
-        expression::Expression,
+        expression::{BinaryOp, Expression},
         statement::{AssignmentTarget, Statement},
     },
-    parser::Parser,
+    parser::{Parser, ParserError},
     token::{Token, TokenType},
 };
 
@@ -24,6 +24,84 @@ fn parses_identifier_assignment() {
         Ok(Statement::Assignment {
             target: AssignmentTarget::Identifier(b"x".to_vec()),
             value: Expression::Integer(42),
+        })
+    );
+}
+
+#[test]
+fn parses_array_element_assignment() {
+    let tokens = vec![
+        Token::new(TokenType::Id, 1, b"values".to_vec()),
+        Token::new(TokenType::LBracket, 1, b"[".to_vec()),
+        Token::new(TokenType::Id, 1, b"i".to_vec()),
+        Token::new(TokenType::Plus, 1, b"+".to_vec()),
+        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
+        Token::new(TokenType::RBracket, 1, b"]".to_vec()),
+        Token::new(TokenType::Assign, 1, b"=".to_vec()),
+        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
+        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    assert_eq!(
+        parser.parse_statement(),
+        Ok(Statement::Assignment {
+            target: AssignmentTarget::ArrayElement {
+                array: b"values".to_vec(),
+                index: Box::new(Expression::Binary {
+                    left: Box::new(Expression::Identifier(b"i".to_vec())),
+                    op: BinaryOp::Add,
+                    right: Box::new(Expression::Integer(1)),
+                }),
+            },
+            value: Expression::Integer(42),
+        })
+    );
+}
+
+#[test]
+fn assignment_requires_semicolon() {
+    let tokens = vec![
+        Token::new(TokenType::Id, 1, b"x".to_vec()),
+        Token::new(TokenType::Assign, 1, b"=".to_vec()),
+        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    assert_eq!(
+        parser.parse_statement(),
+        Err(ParserError::UnexpectedToken {
+            expected: "';'",
+            found: TokenType::Eof,
+            line: 1,
+        })
+    );
+}
+
+#[test]
+fn array_assignment_requires_closing_bracket() {
+    let tokens = vec![
+        Token::new(TokenType::Id, 1, b"values".to_vec()),
+        Token::new(TokenType::LBracket, 1, b"[".to_vec()),
+        Token::new(TokenType::Id, 1, b"i".to_vec()),
+        Token::new(TokenType::Assign, 1, b"=".to_vec()),
+        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
+        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    assert_eq!(
+        parser.parse_statement(),
+        Err(ParserError::UnexpectedToken {
+            expected: "']'",
+            found: TokenType::Assign,
+            line: 1,
         })
     );
 }
