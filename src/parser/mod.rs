@@ -89,10 +89,10 @@ impl<'a> Parser<'a, ExprParser> {
         let identifier = self.context.current().get_lexema().to_owned();
         self.context.expect(TokenType::Id, "Id")?;
         match *self.context.current().get_tok_type() {
-            TokenType::RBrace => {
+            TokenType::LBracket => {
                 self.context.advance();
                 let expr = self.expr_parser.parse_expression(&mut self.context)?;
-                self.context.expect(TokenType::RBrace, "']'")?;
+                self.context.expect(TokenType::RBracket, "']'")?;
                 Ok(AssignmentTarget::ArrayElement {
                     array: identifier,
                     index: Box::new(expr),
