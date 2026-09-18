@@ -4,7 +4,7 @@
   <img src="https://www.rust-lang.org/logos/rust-logo-512x512.png" alt="Rust logo" width="120" />
 </p>
 
-[![CI](https://github.com/Joao-Schio/Lexer/actions/workflows/ci.yml/badge.svg)](https://github.com/Joao-Schio/Lexer/actions/workflows/ci.yml)
+[![CI](https://github.com/Joao-Schio/microc-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/Joao-Schio/microc-rs/actions/workflows/ci.yml)
 [![Coverage](.github/badges/coverage.svg)](https://github.com/Joao-Schio/microc-rs/actions/workflows/coverage.yml)
 
 A from-scratch implementation of the **Micro C** compiler written in Rust.
@@ -13,7 +13,7 @@ This project started as an implementation of the lexical analyzer described in t
 
 The goal is not to mechanically translate the reference C implementation into Rust. Instead, MicroC-RS aims to preserve the language semantics while designing the compiler around Rust's type system, ownership model, and modern software-engineering practices.
 
-> **Status:** Work in progress. The project is currently focused on lexical analysis.
+> **Status:** Work in progress. Scanner and lexer support are in place, and development is currently focused on the parser and typed AST. Expression parsing, function calls, assignments, and `return` statements are implemented.
 
 ## Goals
 
@@ -102,16 +102,19 @@ Vec<Token>
 Parser
   |
   v
-AST
+Typed AST
   |
   v
 Semantic Analysis
   |
   v
-LLVM IR Generation
+x86-64 Code Generation
   |
   v
-LLVM Toolchain
+GNU/AT&T Assembly
+  |
+  v
+Assembler / Linker
   |
   v
 Native Executable
@@ -119,12 +122,35 @@ Native Executable
 
 Compiler phases communicate through typed in-memory structures rather than intermediate files.
 
-Representations such as token dumps, AST output, semantic information, and generated LLVM IR may be exposed through the CLI for debugging and inspection, but are not used as file-based communication mechanisms between compiler stages.
+Representations such as token dumps, AST output, semantic information, and generated assembly may eventually be exposed through the CLI for debugging and inspection, but they are not used as file-based communication mechanisms between compiler stages.
+
+The initial execution target is **Linux x86-64 using the System V ABI and GNU/AT&T assembly syntax**. The compiler itself is intended to remain runnable on macOS/Apple Silicon while emitting code for the Linux target.
+
+LLVM is not part of the V1 backend plan. It may be explored later as an additional backend, but the first compiler backend is intentionally handwritten.
 
 ## Current Structure
 
 ```text
 src/
+├── ast/
+│   ├── expression.rs
+│   ├── mod.rs
+│   └── statement.rs
+├── parser/
+│   ├── expression.rs
+│   └── mod.rs
+├── tests/
+│   ├── parser/
+│   │   ├── error.rs
+│   │   ├── expression.rs
+│   │   ├── mod.rs
+│   │   └── statement.rs
+│   ├── comments.rs
+│   ├── helpers.rs
+│   ├── lexer.rs
+│   ├── numeric.rs
+│   ├── reserved_words.rs
+│   └── tokenize.rs
 ├── lexer.rs
 ├── main.rs
 ├── scanner.rs
@@ -135,13 +161,7 @@ src/
 
 The scanner owns the underlying input reader and provides byte-level source traversal.
 
-It currently tracks:
-
-- the next byte
-- line number
-- column number
-
-The scanner supports non-consuming lookahead, allowing the lexer to recognize multi-character operators without moving through the source prematurely.
+It tracks source position and supports non-consuming lookahead, allowing the lexer to recognize multi-character operators without consuming unrelated input.
 
 ### Lexer
 
@@ -157,7 +177,7 @@ pub struct Lexer<S: TScanner> {
 
 This keeps the lexer independent from a particular input source and makes the scanner/lexer boundary straightforward to test.
 
-Lexical errors currently produce an `Undef` token. V1 follows a fail-fast approach, so higher-level tokenization can stop when the first invalid token is encountered.
+Lexical failures are represented as typed `LexerError` values rather than sentinel tokens. The compiler follows a fail-fast approach for V1.
 
 ### Tokens
 
@@ -165,36 +185,56 @@ Tokens contain their token type, source line, and original lexeme.
 
 `TokenType` is represented as a Rust enum, allowing literal tokens to carry typed values where appropriate.
 
+### AST
+
+The AST is represented using typed Rust enums rather than the generic first-child / next-sibling representation used by the reference implementation.
+
+The expression AST currently represents:
+
+- integer and character literals
+- identifiers
+- unary operations
+- binary operations
+- array access
+- function calls
+
+The statement AST currently represents:
+
+- assignments to identifiers
+- assignments to array elements
+- `return` statements with optional expressions
+
+### Parser
+
+The parser currently supports the complete expression layer needed by the implemented statements, including operator precedence, unary expressions, array access, and function calls.
+
+Statement parsing currently supports:
+
+```text
+x = expression;
+array[index] = expression;
+return;
+return expression;
+```
+
+`ParserContext` owns token traversal, while expression parsing is injected through `TExprParser`. Statement parsing reuses that expression parser instead of duplicating expression grammar.
+
+Malformed syntax produces typed `ParserError` values. Parser routines are responsible for consuming their own delimiters, which is enforced by tests that parse consecutive constructs.
+
+The next parser work is centered on the remaining statement forms and larger grammar structures such as `print`, blocks, control flow, declarations, functions, and complete programs.
+
 ## Testing
 
 TDD is a first-class part of the project.
 
 The testing strategy favors:
 
-- **contract tests** at architectural boundaries such as scanners and lexers
+- **contract tests** at architectural boundaries such as scanners, lexers, and expression parsers
 - focused unit tests for individual compiler transformations
+- regression tests for parser cursor and delimiter ownership
 - a smaller number of end-to-end compiler tests as later phases are implemented
 
-For example, lexer tests verify not only that:
-
-```text
-&&
-```
-
-produces an `And` token, but also that:
-
-```text
-&&+
-```
-
-produces:
-
-```text
-And("&&")
-Plus("+")
-```
-
-This ensures that lookahead recognizes **and consumes exactly the characters belonging to the token**.
+The parser tests intentionally verify not only AST output but also token consumption. For example, consecutive statement tests ensure that parsing one statement consumes exactly one statement and leaves the parser positioned at the next one.
 
 Run the test suite with:
 
@@ -217,8 +257,8 @@ MicroC-RS uses Rust edition 2024.
 Clone the repository:
 
 ```bash
-git clone https://github.com/Joao-Schio/Lexer.git
-cd Lexer
+git clone https://github.com/Joao-Schio/microc-rs.git
+cd microc-rs
 ```
 
 Build it with:
@@ -239,62 +279,50 @@ Check formatting with:
 cargo fmt --all -- --check
 ```
 
-The repository's CI runs both formatting checks and the test suite.
+The repository's CI runs formatting checks and the test suite, while the coverage workflow tracks line coverage separately.
 
-> The compiler executable itself is not functional yet. `main.rs` is currently only a placeholder while the compiler components are developed.
+> The compiler executable itself is not functional yet. `main.rs` remains a placeholder while the compiler frontend is developed.
 
 ## Backend
 
-MicroC-RS V1 will generate **LLVM IR**.
-
-The compiler frontend remains responsible for:
-
-- lexical analysis
-- parsing
-- AST construction
-- semantic analysis
-- type checking
-- control-flow representation
-- lowering Micro C semantics into LLVM IR
-
-LLVM is then responsible for lowering the generated IR into native machine code.
-
-The initial execution target is Linux x86-64, although using LLVM IR keeps the compiler frontend substantially less coupled to a specific machine architecture.
-
-The compiler itself is intended to remain runnable on macOS/Apple Silicon while producing LLVM IR that can be compiled for the intended target.
-
-### Future handwritten backend
-
-A handwritten x86-64 backend is deliberately outside the V1 scope.
-
-A future V2 may add an additional backend targeting:
+MicroC-RS V1 will use a handwritten native backend targeting:
 
 - Linux x86-64 / AMD64
 - System V ABI
 - GNU/AT&T assembly syntax
 
-That backend would exist alongside the LLVM backend rather than replacing it.
+The frontend remains responsible for lexical analysis, parsing, AST construction, semantic analysis, type checking, and lowering Micro C semantics into a form suitable for code generation.
+
+Stack-frame layout will be calculated from the program being compiled rather than relying on arbitrary fixed offsets.
+
+LLVM is intentionally outside V1 so the project can retain the educational value of implementing its own backend. An LLVM backend may be explored later as an additional target rather than replacing the handwritten backend.
 
 ## Roadmap
 
-### V1 — LLVM compiler
+### V1 — Native Micro C compiler
 
 - [x] Scanner foundation
-- [ ] Complete lexical analyzer
-- [ ] Parser
-- [ ] Abstract Syntax Tree
-- [ ] Semantic analysis
-- [ ] LLVM IR generation
+- [x] Lexical analyzer and typed lexical errors
+- [x] Expression AST
+- [x] Expression parser and operator precedence
+- [x] Function-call parsing
+- [x] Assignment statements
+- [x] `return` statements
+- [ ] Remaining statements (`print`, empty statement, blocks)
+- [ ] Control flow (`if` / `else`, `for`)
+- [ ] Variable declarations
+- [ ] Function definitions and complete program parsing
+- [ ] Complete typed AST
+- [ ] Semantic analysis and symbol tables
+- [ ] Linux x86-64 System V code generation
+- [ ] Stack-frame layout
+- [ ] GNU/AT&T assembly generation
 - [ ] Compiler CLI
 - [ ] End-to-end Micro C programs
 
-### V2 — Native backend
+### Future work
 
-- [ ] Handwritten x86-64 backend
-- [ ] System V ABI lowering
-- [ ] Stack-frame layout
-- [ ] Register and temporary-value strategy
-- [ ] GNU/AT&T assembly generation
+Potential post-V1 work may include additional backends, targets, language features, and optimization experiments. Those are deliberately deferred until the original Micro C implementation is complete.
 
 ## Design Philosophy
 
