@@ -3,8 +3,14 @@ mod expression;
 use std::{error::Error, fmt};
 
 use crate::{
-    ast::expression::Expression,
-    token::{Token, TokenType},
+    ast::{
+        expression::Expression,
+        statement::{AssignmentTarget, Statement},
+    },
+    token::{
+        Token,
+        TokenType::{self, LBrace},
+    },
 };
 
 pub use expression::{ExprParser, TExprParser};
@@ -77,6 +83,30 @@ pub struct Parser<'a, E: TExprParser = ExprParser> {
 impl<'a> Parser<'a, ExprParser> {
     pub fn new(tokens: &'a [Token]) -> Self {
         Self::with_expr_parser(tokens, ExprParser)
+    }
+
+    fn parse_assignment_target(&mut self) -> Result<AssignmentTarget, ParserError> {
+        let identifier = self.context.current().get_lexema().to_owned();
+        self.context.expect(TokenType::Id, "Id")?;
+        match *self.context.current().get_tok_type() {
+            TokenType::RBrace => {
+                self.context.advance();
+                let expr = self.expr_parser.parse_expression(&mut self.context)?;
+                self.context.expect(TokenType::RBrace, "']'")?;
+                Ok(AssignmentTarget::ArrayElement {
+                    array: identifier,
+                    index: Box::new(expr),
+                })
+            }
+            _ => Ok(AssignmentTarget::Identifier(identifier)),
+        }
+    }
+
+    pub fn parse_statement(&mut self) -> Result<Statement, ParserError> {
+        let target = self.parse_assignment_target()?;
+        self.context.expect(TokenType::Assign, "'='")?;
+        let value = self.expr_parser.parse_expression(&mut self.context)?;
+        Ok(Statement::Assignment { target, value })
     }
 }
 
