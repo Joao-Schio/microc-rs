@@ -31,6 +31,36 @@ The main engineering goals are:
 
 The project deliberately avoids reproducing implementation limitations from the teaching compiler when Rust provides a cleaner alternative.
 
+## Project Constraints
+
+MicroC-RS is intentionally developed under a small set of restrictions intended to keep the project focused on learning and implementing the compiler itself.
+
+### Safe Rust only
+
+All MicroC-RS code must be written in **safe Rust**.
+
+The project does not permit `unsafe` blocks, `unsafe fn`, or other first-party unsafe Rust. If an implementation appears to require `unsafe`, the preferred solution is to redesign it around Rust's safe ownership and type system rather than bypassing those guarantees.
+
+This restriction applies to MicroC-RS itself; third-party dependencies are not required to be internally free of `unsafe`.
+
+### Compiler phases are implemented by MicroC-RS
+
+Core compiler functionality must not be delegated to compiler generators, compiler frameworks, or libraries that implement compiler phases on behalf of the project.
+
+This includes tools and libraries such as:
+
+- Flex, Lex, or equivalent lexer generators
+- parser generators
+- Rust equivalents of lexer/parser generators
+- libraries that provide a ready-made compiler frontend
+- libraries that perform semantic analysis or AST construction for MicroC-RS
+
+The scanner, lexer, parser, AST construction, semantic analysis, and lowering to LLVM IR are implemented directly by MicroC-RS.
+
+External libraries are allowed when they support peripheral concerns rather than replacing compiler implementation work. For example, a crate used for colored diagnostics, command-line parsing, testing, or similar infrastructure is acceptable.
+
+LLVM is the intentional boundary for V1: MicroC-RS generates textual LLVM IR itself and may then invoke the LLVM toolchain to perform native code generation.
+
 ## Language Scope
 
 The first version aims to implement the original Micro C language, including:
