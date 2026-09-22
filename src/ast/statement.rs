@@ -10,6 +10,12 @@ pub enum AssignmentTarget {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum PrintContent {
+    StringConst(Vec<u8>),
+    Expression(Expression),
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum Statement {
     Assignment {
         target: AssignmentTarget,
@@ -17,5 +23,9 @@ pub enum Statement {
     },
     Return {
         value: Option<Expression>,
+    },
+
+    Print {
+        content: PrintContent,
     },
 }

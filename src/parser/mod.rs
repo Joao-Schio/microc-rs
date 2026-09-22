@@ -5,7 +5,7 @@ use std::{error::Error, fmt};
 use crate::{
     ast::{
         expression::Expression,
-        statement::{AssignmentTarget, Statement},
+        statement::{AssignmentTarget, PrintContent, Statement},
     },
     token::{
         Token,
@@ -134,10 +134,27 @@ impl<'a, E: TExprParser> Parser<'a, E> {
         Ok(Statement::Return { value })
     }
 
+    fn parse_print(&mut self) -> Result<Statement, ParserError> {
+        self.context.advance();
+        self.context.expect(TokenType::Lparen, "'('")?;
+        let content = match *self.context.current().get_tok_type() {
+            TokenType::StringConst => {
+                let buf = self.context.current().get_lexema().to_owned();
+                self.context.advance();
+                PrintContent::StringConst(buf)
+            }
+            _ => PrintContent::Expression(self.expr_parser.parse_expression(&mut self.context)?),
+        };
+        self.context.expect(TokenType::Rparen, "')'")?;
+        self.context.expect(TokenType::SemiColon, "';'")?;
+        Ok(Statement::Print { content })
+    }
+
     pub fn parse_statement(&mut self) -> Result<Statement, ParserError> {
         match *self.context.current().get_tok_type() {
             TokenType::Id => self.parse_assignment(),
             TokenType::Return => self.parse_return(),
+            TokenType::Print => self.parse_print(),
             found => Err(ParserError::UnexpectedToken {
                 expected: "statement",
                 found,

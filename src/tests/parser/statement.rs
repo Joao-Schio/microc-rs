@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         expression::{BinaryOp, Expression},
-        statement::{AssignmentTarget, Statement},
+        statement::{AssignmentTarget, PrintContent, Statement},
     },
     parser::{Parser, ParserError},
     token::{Token, TokenType},
@@ -259,6 +259,120 @@ fn rejects_invalid_statement_start() {
             expected: "statement",
             found: TokenType::Plus,
             line: 7,
+        })
+    );
+}
+
+#[test]
+fn parses_print_string() {
+    let tokens = vec![
+        Token::new(TokenType::Print, 1, b"print".to_vec()),
+        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
+        Token::new(TokenType::StringConst, 1, b"hello".to_vec()),
+        Token::new(TokenType::Rparen, 1, b")".to_vec()),
+        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    assert_eq!(
+        parser.parse_statement(),
+        Ok(Statement::Print {
+            content: PrintContent::StringConst(b"hello".to_vec()),
+        })
+    );
+}
+
+#[test]
+fn parses_print_expression() {
+    let tokens = vec![
+        Token::new(TokenType::Print, 1, b"print".to_vec()),
+        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
+        Token::new(TokenType::Id, 1, b"a".to_vec()),
+        Token::new(TokenType::Plus, 1, b"+".to_vec()),
+        Token::new(TokenType::Id, 1, b"b".to_vec()),
+        Token::new(TokenType::Rparen, 1, b")".to_vec()),
+        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    assert_eq!(
+        parser.parse_statement(),
+        Ok(Statement::Print {
+            content: PrintContent::Expression(Expression::Binary {
+                left: Box::new(Expression::Identifier(b"a".to_vec())),
+                op: BinaryOp::Add,
+                right: Box::new(Expression::Identifier(b"b".to_vec())),
+            }),
+        })
+    );
+}
+
+#[test]
+fn print_requires_closing_parenthesis() {
+    let tokens = vec![
+        Token::new(TokenType::Print, 1, b"print".to_vec()),
+        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
+        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
+        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    assert_eq!(
+        parser.parse_statement(),
+        Err(ParserError::UnexpectedToken {
+            expected: "')'",
+            found: TokenType::SemiColon,
+            line: 1,
+        })
+    );
+}
+
+#[test]
+fn print_requires_semicolon() {
+    let tokens = vec![
+        Token::new(TokenType::Print, 1, b"print".to_vec()),
+        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
+        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
+        Token::new(TokenType::Rparen, 1, b")".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    assert_eq!(
+        parser.parse_statement(),
+        Err(ParserError::UnexpectedToken {
+            expected: "';'",
+            found: TokenType::Eof,
+            line: 1,
+        })
+    );
+}
+
+#[test]
+fn rejects_empty_print() {
+    let tokens = vec![
+        Token::new(TokenType::Print, 1, b"print".to_vec()),
+        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
+        Token::new(TokenType::Rparen, 1, b")".to_vec()),
+        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(&tokens);
+
+    assert_eq!(
+        parser.parse_statement(),
+        Err(ParserError::UnexpectedToken {
+            expected: "expression",
+            found: TokenType::Rparen,
+            line: 1,
         })
     );
 }
