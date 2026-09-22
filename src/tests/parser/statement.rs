@@ -17,7 +17,7 @@ fn parses_identifier_assignment() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -43,7 +43,7 @@ fn parses_array_element_assignment() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -70,7 +70,7 @@ fn assignment_requires_semicolon() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -94,7 +94,7 @@ fn array_assignment_requires_closing_bracket() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -122,7 +122,7 @@ fn parses_consecutive_assignments() {
         Token::new(TokenType::Eof, 2, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert!(parser.parse_statement().is_ok());
     assert!(parser.parse_statement().is_ok());
@@ -136,7 +136,7 @@ fn parses_return_without_value() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -153,7 +153,7 @@ fn parses_return_with_value() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -177,7 +177,7 @@ fn parses_expression_in_return() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -202,7 +202,7 @@ fn return_requires_semicolon() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -227,7 +227,7 @@ fn parses_assignment_followed_by_return() {
         Token::new(TokenType::Eof, 2, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -251,7 +251,7 @@ fn rejects_invalid_statement_start() {
         Token::new(TokenType::Eof, 7, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -274,7 +274,7 @@ fn parses_print_string() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -297,7 +297,7 @@ fn parses_print_expression() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -321,7 +321,7 @@ fn print_requires_closing_parenthesis() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -343,7 +343,7 @@ fn print_requires_semicolon() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),
@@ -365,7 +365,7 @@ fn rejects_empty_print() {
         Token::new(TokenType::Eof, 1, vec![]),
     ];
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     assert_eq!(
         parser.parse_statement(),

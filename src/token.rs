@@ -65,4 +65,8 @@ impl Token {
     pub fn get_linha(&self) -> usize {
         self.linha
     }
+
+    pub fn into_lexeme(self) -> Vec<u8> {
+        self.lexema
+    }
 }
