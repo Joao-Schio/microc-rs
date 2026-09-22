@@ -9,7 +9,7 @@ macro_rules! expression_parser_contract {
         mod $module {
             use super::*;
 
-            fn parse(tokens: &[Token]) -> Result<Expression, ParserError> {
+            fn parse(tokens: Vec<Token>) -> Result<Expression, ParserError> {
                 let mut parser = Parser::with_expr_parser(tokens, <$parser>::default());
                 parser.parse_expression()
             }
@@ -21,7 +21,7 @@ macro_rules! expression_parser_contract {
                     Token::new(TokenType::Eof, 1, vec![]),
                 ];
 
-                assert_eq!(parse(&tokens), Ok(Expression::Integer(42)));
+                assert_eq!(parse(tokens), Ok(Expression::Integer(42)));
             }
 
             #[test]
@@ -29,7 +29,7 @@ macro_rules! expression_parser_contract {
                 let tokens = vec![Token::new(TokenType::Plus, 1, b"+".to_vec())];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Err(ParserError::UnexpectedToken {
                         expected: "expression",
                         found: TokenType::Plus,
@@ -45,10 +45,7 @@ macro_rules! expression_parser_contract {
                     Token::new(TokenType::Eof, 1, vec![]),
                 ];
 
-                assert_eq!(
-                    parse(&tokens),
-                    Ok(Expression::Identifier(b"value".to_vec()))
-                );
+                assert_eq!(parse(tokens), Ok(Expression::Identifier(b"value".to_vec())));
             }
 
             #[test]
@@ -58,7 +55,7 @@ macro_rules! expression_parser_contract {
                     Token::new(TokenType::Eof, 1, vec![]),
                 ];
 
-                assert_eq!(parse(&tokens), Ok(Expression::Char(b'a')));
+                assert_eq!(parse(tokens), Ok(Expression::Char(b'a')));
             }
 
             #[test]
@@ -70,7 +67,7 @@ macro_rules! expression_parser_contract {
                     Token::new(TokenType::Eof, 1, vec![]),
                 ];
 
-                assert_eq!(parse(&tokens), Ok(Expression::Integer(42)));
+                assert_eq!(parse(tokens), Ok(Expression::Integer(42)));
             }
 
             #[test]
@@ -82,7 +79,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Err(ParserError::UnexpectedToken {
                         expected: "')'",
                         found: TokenType::Eof,
@@ -100,7 +97,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Unary {
                         op: UnaryOp::Not,
                         expression: Box::new(Expression::Integer(42)),
@@ -117,7 +114,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Unary {
                         op: UnaryOp::Negate,
                         expression: Box::new(Expression::Integer(42)),
@@ -135,7 +132,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Unary {
                         op: UnaryOp::Negate,
                         expression: Box::new(Expression::Unary {
@@ -156,7 +153,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Binary {
                         left: Box::new(Expression::Integer(2)),
                         op: BinaryOp::Multiply,
@@ -177,7 +174,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Binary {
                         left: Box::new(Expression::Binary {
                             left: Box::new(Expression::Integer(8)),
@@ -202,7 +199,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Binary {
                         left: Box::new(Expression::Integer(1)),
                         op: BinaryOp::Add,
@@ -225,7 +222,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Binary {
                         left: Box::new(Expression::Integer(1)),
                         op: BinaryOp::Less,
@@ -248,7 +245,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Binary {
                         left: Box::new(Expression::Binary {
                             left: Box::new(Expression::Integer(1)),
@@ -278,7 +275,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::ArrayAccess {
                         array: b"values".to_vec(),
                         index: Box::new(Expression::Binary {
@@ -300,7 +297,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Err(ParserError::UnexpectedToken {
                         expected: "']'",
                         found: TokenType::Eof,
@@ -319,7 +316,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Call {
                         callee: b"foo".to_vec(),
                         arguments: vec![],
@@ -338,7 +335,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Call {
                         callee: b"foo".to_vec(),
                         arguments: vec![Expression::Integer(1)],
@@ -361,7 +358,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Call {
                         callee: b"foo".to_vec(),
                         arguments: vec![
@@ -386,7 +383,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Call {
                         callee: b"foo".to_vec(),
                         arguments: vec![Expression::Binary {
@@ -412,7 +409,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Call {
                         callee: b"outer".to_vec(),
                         arguments: vec![Expression::Call {
@@ -433,7 +430,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Err(ParserError::UnexpectedToken {
                         expected: "')'",
                         found: TokenType::Eof,
@@ -454,7 +451,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Err(ParserError::UnexpectedToken {
                         expected: "expression",
                         found: TokenType::Rparen,
@@ -475,7 +472,7 @@ macro_rules! expression_parser_contract {
                 ];
 
                 assert_eq!(
-                    parse(&tokens),
+                    parse(tokens),
                     Ok(Expression::Binary {
                         left: Box::new(Expression::Call {
                             callee: b"foo".to_vec(),
@@ -497,7 +494,7 @@ struct StubExprParser;
 impl TExprParser for StubExprParser {
     fn parse_expression(
         &mut self,
-        _context: &mut ParserContext<'_>,
+        _context: &mut ParserContext,
     ) -> Result<Expression, ParserError> {
         Ok(Expression::Integer(99))
     }
@@ -506,7 +503,7 @@ impl TExprParser for StubExprParser {
 #[test]
 fn parser_uses_injected_expression_parser() {
     let tokens = vec![Token::new(TokenType::Eof, 1, vec![])];
-    let mut parser = Parser::with_expr_parser(&tokens, StubExprParser);
+    let mut parser = Parser::with_expr_parser(tokens, StubExprParser);
 
     assert_eq!(parser.parse_expression(), Ok(Expression::Integer(99)));
 }

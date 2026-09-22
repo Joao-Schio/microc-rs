@@ -1,16 +1,13 @@
 mod expression;
 
-use std::{error::Error, fmt};
+use std::{error::Error, fmt, iter::Peekable, vec::IntoIter};
 
 use crate::{
     ast::{
         expression::Expression,
         statement::{AssignmentTarget, PrintContent, Statement},
     },
-    token::{
-        Token,
-        TokenType::{self, SemiColon},
-    },
+    token::{Token, TokenType},
 };
 
 pub use expression::{ExprParser, TExprParser};
@@ -38,56 +35,65 @@ impl fmt::Display for ParserError {
 
 impl Error for ParserError {}
 
-pub struct ParserContext<'a> {
-    tokens: &'a [Token],
-    current: usize,
+pub struct ParserContext {
+    tokens: Peekable<IntoIter<Token>>,
 }
 
-impl<'a> ParserContext<'a> {
-    fn new(tokens: &'a [Token]) -> Self {
-        Self { tokens, current: 0 }
+impl ParserContext {
+    fn new(tokens: Vec<Token>) -> Self {
+        Self {
+            tokens: tokens.into_iter().peekable(),
+        }
     }
 
-    pub(crate) fn current(&self) -> &Token {
-        &self.tokens[self.current]
+    pub(crate) fn current(&mut self) -> &Token {
+        self.tokens
+            .peek()
+            .expect("parser token stream must contain an EOF token")
     }
 
     pub(crate) fn advance(&mut self) {
-        self.current += 1;
+        let _ = self.tokens.next();
     }
 
     pub(crate) fn expect(
         &mut self,
         expected: TokenType,
         expected_description: &'static str,
-    ) -> Result<(), ParserError> {
-        let found = *self.current().get_tok_type();
+    ) -> Result<Token, ParserError> {
+        let (found, line) = {
+            let current = self.current();
+            (*current.get_tok_type(), current.get_linha())
+        };
+
         if found != expected {
             return Err(ParserError::UnexpectedToken {
                 expected: expected_description,
                 found,
-                line: self.current().get_linha(),
+                line,
             });
         }
 
-        self.advance();
-        Ok(())
+        Ok(self
+            .tokens
+            .next()
+            .expect("peeked parser token must still be available"))
     }
 }
 
-pub struct Parser<'a, E: TExprParser = ExprParser> {
-    context: ParserContext<'a>,
+pub struct Parser<E: TExprParser = ExprParser> {
+    context: ParserContext,
     expr_parser: E,
 }
 
-impl<'a> Parser<'a, ExprParser> {
-    pub fn new(tokens: &'a [Token]) -> Self {
+impl Parser<ExprParser> {
+    pub fn new(tokens: Vec<Token>) -> Self {
         Self::with_expr_parser(tokens, ExprParser)
     }
 }
 
-impl<'a, E: TExprParser> Parser<'a, E> {
-    pub fn with_expr_parser(tokens: &'a [Token], expr_parser: E) -> Self {
+impl<E: TExprParser> Parser<E> {
+    pub fn with_expr_parser(tokens: Vec<Token>, expr_parser: E) -> Self {
         Self {
             context: ParserContext::new(tokens),
             expr_parser,
@@ -99,8 +105,8 @@ impl<'a, E: TExprParser> Parser<'a, E> {
     }
 
     fn parse_assignment_target(&mut self) -> Result<AssignmentTarget, ParserError> {
-        let identifier = self.context.current().get_lexema().to_owned();
-        self.context.expect(TokenType::Id, "Id")?;
+        let identifier = self.context.expect(TokenType::Id, "Id")?.into_lexeme();
+
         match *self.context.current().get_tok_type() {
             TokenType::LBracket => {
                 self.context.advance();
@@ -135,16 +141,20 @@ impl<'a, E: TExprParser> Parser<'a, E> {
     }
 
     fn parse_print(&mut self) -> Result<Statement, ParserError> {
-        self.context.advance();
+        self.context.expect(TokenType::Print, "'print'")?;
         self.context.expect(TokenType::Lparen, "'('")?;
+
         let content = match *self.context.current().get_tok_type() {
             TokenType::StringConst => {
-                let buf = self.context.current().get_lexema().to_owned();
-                self.context.advance();
-                PrintContent::StringConst(buf)
+                let lexeme = self
+                    .context
+                    .expect(TokenType::StringConst, "string literal")?
+                    .into_lexeme();
+                PrintContent::StringConst(lexeme)
             }
             _ => PrintContent::Expression(self.expr_parser.parse_expression(&mut self.context)?),
         };
+
         self.context.expect(TokenType::Rparen, "')'")?;
         self.context.expect(TokenType::SemiColon, "';'")?;
         Ok(Statement::Print { content })

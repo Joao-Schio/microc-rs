@@ -372,7 +372,7 @@ impl<S: TScanner> Lexer<S> {
         Ok(Token::new(
             TokenType::IntegerConst(integer),
             line,
-            buffer.as_bytes().to_owned(),
+            buffer.into_bytes(),
         ))
     }
 }

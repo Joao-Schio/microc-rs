@@ -6,10 +6,7 @@ use crate::{
 use super::{ParserContext, ParserError};
 
 pub trait TExprParser {
-    fn parse_expression(
-        &mut self,
-        context: &mut ParserContext<'_>,
-    ) -> Result<Expression, ParserError>;
+    fn parse_expression(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError>;
 }
 
 #[derive(Default)]
@@ -19,7 +16,7 @@ impl ExprParser {
     #[inline]
     fn parse_unary(
         &mut self,
-        context: &mut ParserContext<'_>,
+        context: &mut ParserContext,
         op: UnaryOp,
     ) -> Result<Expression, ParserError> {
         context.advance();
@@ -34,7 +31,7 @@ impl ExprParser {
 
     fn parse_array_access(
         &mut self,
-        context: &mut ParserContext<'_>,
+        context: &mut ParserContext,
         identifier: Vec<u8>,
     ) -> Result<Expression, ParserError> {
         context.advance();
@@ -48,7 +45,7 @@ impl ExprParser {
 
     fn parse_arguments(
         &mut self,
-        context: &mut ParserContext<'_>,
+        context: &mut ParserContext,
     ) -> Result<Vec<Expression>, ParserError> {
         if *context.current().get_tok_type() == TokenType::Rparen {
             return Ok(Vec::new());
@@ -65,7 +62,7 @@ impl ExprParser {
 
     fn parse_call(
         &mut self,
-        context: &mut ParserContext<'_>,
+        context: &mut ParserContext,
         identifier: Vec<u8>,
     ) -> Result<Expression, ParserError> {
         context.expect(TokenType::Lparen, "'('")?;
@@ -78,12 +75,8 @@ impl ExprParser {
     }
 
     #[inline]
-    fn parse_identifier(
-        &mut self,
-        context: &mut ParserContext<'_>,
-    ) -> Result<Expression, ParserError> {
-        let identifier = context.current().get_lexema().to_owned();
-        context.advance();
+    fn parse_identifier(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
+        let identifier = context.expect(TokenType::Id, "identifier")?.into_lexeme();
 
         match *context.current().get_tok_type() {
             TokenType::LBracket => self.parse_array_access(context, identifier),
@@ -93,7 +86,7 @@ impl ExprParser {
     }
 
     #[inline]
-    fn parse_factor(&mut self, context: &mut ParserContext<'_>) -> Result<Expression, ParserError> {
+    fn parse_factor(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
         match *context.current().get_tok_type() {
             TokenType::IntegerConst(value) => {
                 context.advance();
@@ -103,13 +96,11 @@ impl ExprParser {
             TokenType::Id => self.parse_identifier(context),
 
             TokenType::CharConst => {
-                let value = *context
-                    .current()
+                let token = context.expect(TokenType::CharConst, "character literal")?;
+                let value = *token
                     .get_lexema()
                     .first()
                     .expect("char const must have a byte at index 0");
-
-                context.advance();
 
                 Ok(Expression::Char(value))
             }
@@ -137,7 +128,7 @@ impl ExprParser {
     }
 
     #[inline]
-    fn parse_term(&mut self, context: &mut ParserContext<'_>) -> Result<Expression, ParserError> {
+    fn parse_term(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
         let mut expression = self.parse_factor(context)?;
 
         loop {
@@ -163,10 +154,7 @@ impl ExprParser {
     }
 
     #[inline]
-    fn parse_arithmetic(
-        &mut self,
-        context: &mut ParserContext<'_>,
-    ) -> Result<Expression, ParserError> {
+    fn parse_arithmetic(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
         let mut expression = self.parse_term(context)?;
 
         loop {
@@ -191,10 +179,7 @@ impl ExprParser {
     }
 
     #[inline]
-    fn parse_relational(
-        &mut self,
-        context: &mut ParserContext<'_>,
-    ) -> Result<Expression, ParserError> {
+    fn parse_relational(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
         let left = self.parse_arithmetic(context)?;
 
         let op = match *context.current().get_tok_type() {
@@ -219,10 +204,7 @@ impl ExprParser {
     }
 
     #[inline]
-    fn parse_logical(
-        &mut self,
-        context: &mut ParserContext<'_>,
-    ) -> Result<Expression, ParserError> {
+    fn parse_logical(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
         let mut expression = self.parse_relational(context)?;
 
         loop {
@@ -248,10 +230,7 @@ impl ExprParser {
 }
 
 impl TExprParser for ExprParser {
-    fn parse_expression(
-        &mut self,
-        context: &mut ParserContext<'_>,
-    ) -> Result<Expression, ParserError> {
+    fn parse_expression(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
         self.parse_logical(context)
     }
 }
