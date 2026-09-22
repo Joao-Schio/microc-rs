@@ -160,11 +160,17 @@ impl<E: TExprParser> Parser<E> {
         Ok(Statement::Print { content })
     }
 
+    fn parse_empty(&mut self) -> Result<Statement, ParserError> {
+        self.context.expect(TokenType::SemiColon, "';'")?;
+        Ok(Statement::Empty)
+    }
+
     pub fn parse_statement(&mut self) -> Result<Statement, ParserError> {
         match *self.context.current().get_tok_type() {
             TokenType::Id => self.parse_assignment(),
             TokenType::Return => self.parse_return(),
             TokenType::Print => self.parse_print(),
+            TokenType::SemiColon => self.parse_empty(),
             found => Err(ParserError::UnexpectedToken {
                 expected: "statement",
                 found,

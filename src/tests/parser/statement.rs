@@ -376,3 +376,39 @@ fn rejects_empty_print() {
         })
     );
 }
+
+#[test]
+fn parses_empty_statement() {
+    let tokens = vec![
+        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
+        Token::new(TokenType::Eof, 1, vec![]),
+    ];
+
+    let mut parser = Parser::new(tokens);
+
+    assert_eq!(parser.parse_statement(), Ok(Statement::Empty));
+}
+
+#[test]
+fn empty_statement_consumes_only_its_semicolon() {
+    let tokens = vec![
+        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
+        Token::new(TokenType::Id, 2, b"x".to_vec()),
+        Token::new(TokenType::Assign, 2, b"=".to_vec()),
+        Token::new(TokenType::IntegerConst(42), 2, b"42".to_vec()),
+        Token::new(TokenType::SemiColon, 2, b";".to_vec()),
+        Token::new(TokenType::Eof, 2, vec![]),
+    ];
+
+    let mut parser = Parser::new(tokens);
+
+    assert_eq!(parser.parse_statement(), Ok(Statement::Empty));
+
+    assert_eq!(
+        parser.parse_statement(),
+        Ok(Statement::Assignment {
+            target: AssignmentTarget::Identifier(b"x".to_vec()),
+            value: Expression::Integer(42),
+        })
+    );
+}

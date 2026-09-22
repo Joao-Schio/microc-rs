@@ -24,8 +24,8 @@ pub enum Statement {
     Return {
         value: Option<Expression>,
     },
-
     Print {
         content: PrintContent,
     },
+    Empty,
 }
