@@ -27,5 +27,10 @@ pub enum Statement {
     Print {
         content: PrintContent,
     },
+    If {
+        condition: Expression,
+        then_branch: Box<Statement>,
+        else_branch: Option<Box<Statement>>,
+    },
     Empty,
 }
