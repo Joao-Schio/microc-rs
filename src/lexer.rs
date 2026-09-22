@@ -225,7 +225,7 @@ impl<S: TScanner> Lexer<S> {
         let tipo = self
             .reserved_words
             .get(id.as_slice())
-            .copied()
+            .cloned()
             .unwrap_or(TokenType::Id);
 
         Ok(Token::new(tipo, self.scanner.get_line(), id))

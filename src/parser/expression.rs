@@ -87,8 +87,9 @@ impl ExprParser {
 
     #[inline]
     fn parse_factor(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
-        match *context.current().get_tok_type() {
+        match context.current().get_tok_type() {
             TokenType::IntegerConst(value) => {
+                let value = *value;
                 context.advance();
                 Ok(Expression::Integer(value))
             }
@@ -119,11 +120,15 @@ impl ExprParser {
 
             TokenType::Minus => self.parse_unary(context, UnaryOp::Negate),
 
-            found => Err(ParserError::UnexpectedToken {
-                expected: "expression",
-                found,
-                line: context.current().get_linha(),
-            }),
+            found => {
+                let found = found.clone();
+                let line = context.current().get_linha();
+                Err(ParserError::UnexpectedToken {
+                    expected: "expression",
+                    found,
+                    line,
+                })
+            }
         }
     }
 

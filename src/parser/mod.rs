@@ -63,13 +63,13 @@ impl ParserContext {
     ) -> Result<Token, ParserError> {
         let (found, line) = {
             let current = self.current();
-            (*current.get_tok_type(), current.get_linha())
+            (current.get_tok_type(), current.get_linha())
         };
 
-        if found != expected {
+        if *found != expected {
             return Err(ParserError::UnexpectedToken {
                 expected: expected_description,
-                found,
+                found: found.clone(),
                 line,
             });
         }
@@ -186,17 +186,21 @@ impl<E: TExprParser> Parser<E> {
     }
 
     pub fn parse_statement(&mut self) -> Result<Statement, ParserError> {
-        match *self.context.current().get_tok_type() {
+        match self.context.current().get_tok_type() {
             TokenType::Id => self.parse_assignment(),
             TokenType::Return => self.parse_return(),
             TokenType::Print => self.parse_print(),
             TokenType::SemiColon => self.parse_empty(),
             TokenType::If => self.parse_if(),
-            found => Err(ParserError::UnexpectedToken {
-                expected: "statement",
-                found,
-                line: self.context.current().get_linha(),
-            }),
+            found => {
+                let found = found.clone();
+                let line = self.context.current().get_linha();
+                Err(ParserError::UnexpectedToken {
+                    expected: "statement",
+                    found,
+                    line,
+                })
+            }
         }
     }
 }
