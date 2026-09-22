@@ -165,12 +165,33 @@ impl<E: TExprParser> Parser<E> {
         Ok(Statement::Empty)
     }
 
+    fn parse_if(&mut self) -> Result<Statement, ParserError> {
+        self.context.advance();
+        self.context.expect(TokenType::Lparen, "'('")?;
+        let condition = self.expr_parser.parse_expression(&mut self.context)?;
+        self.context.expect(TokenType::Rparen, "')'")?;
+        let then_branch = Box::new(self.parse_statement()?);
+        let else_branch = match self.context.current().get_tok_type() {
+            TokenType::Else => {
+                self.context.advance();
+                Some(Box::new(self.parse_statement()?))
+            }
+            _ => None,
+        };
+        Ok(Statement::If {
+            condition,
+            then_branch,
+            else_branch,
+        })
+    }
+
     pub fn parse_statement(&mut self) -> Result<Statement, ParserError> {
         match *self.context.current().get_tok_type() {
             TokenType::Id => self.parse_assignment(),
             TokenType::Return => self.parse_return(),
             TokenType::Print => self.parse_print(),
             TokenType::SemiColon => self.parse_empty(),
+            TokenType::If => self.parse_if(),
             found => Err(ParserError::UnexpectedToken {
                 expected: "statement",
                 found,
