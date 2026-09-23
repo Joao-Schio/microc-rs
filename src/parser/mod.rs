@@ -224,10 +224,44 @@ impl<E: TExprParser> Parser<E> {
         let TokenType::Id(identifier) = token.into_type() else {
             unreachable!("identifier predicate must only accept TokenType::Id")
         };
-        Ok(VariableDeclaration::Scalar {
-            data_type,
-            name: identifier,
-        })
+
+        match self.context.current().token_type() {
+            TokenType::LBracket => {
+                self.context.expect(TokenType::LBracket)?;
+
+                let token = self.context.expect_matching("IntegerConst", |found| {
+                    matches!(found, TokenType::IntegerConst(_))
+                })?;
+
+                let TokenType::IntegerConst(length) = token.into_type() else {
+                    unreachable!("integer predicate must only accept TokenType::IntegerConst")
+                };
+
+                self.context.expect(TokenType::RBracket)?;
+                self.context.expect(TokenType::SemiColon)?;
+
+                Ok(VariableDeclaration::Array {
+                    data_type,
+                    name: identifier,
+                    length,
+                })
+            }
+
+            TokenType::SemiColon => {
+                self.context.expect(TokenType::SemiColon)?;
+
+                Ok(VariableDeclaration::Scalar {
+                    data_type,
+                    name: identifier,
+                })
+            }
+
+            found => Err(ParserError::UnexpectedToken {
+                expected: "';' or '['",
+                found: found.clone(),
+                line: self.context.current().line(),
+            }),
+        }
     }
 
     pub fn parse_declarations(&mut self) -> Result<Vec<VariableDeclaration>, ParserError> {
