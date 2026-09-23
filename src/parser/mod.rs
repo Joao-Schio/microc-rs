@@ -5,7 +5,7 @@ use std::{error::Error, fmt, iter::Peekable, vec::IntoIter};
 use crate::{
     ast::{
         expression::Expression,
-        statement::{AssignmentTarget, Block, PrintContent, Statement},
+        statement::{AssignmentTarget, Block, PrintContent, Statement, VariableDeclaration},
     },
     token::{Token, TokenType},
 };
@@ -211,12 +211,28 @@ impl<E: TExprParser> Parser<E> {
         })
     }
 
+    pub fn parse_declarations(&mut self) -> Result<Vec<VariableDeclaration>, ParserError> {
+        todo!()
+    }
+
+    pub fn parse_statement_block(&mut self) -> Result<Vec<Statement>, ParserError> {
+        todo!()
+    }
+
     pub fn parse_block(&mut self) -> Result<Statement, ParserError> {
         self.context.expect(TokenType::LBrace)?;
+        let mut statements = Vec::new();
+        loop {
+            if *self.context.current().token_type() == TokenType::RBrace {
+                break;
+            }
+            let statement = self.parse_statement()?;
+            statements.push(statement);
+        }
         self.context.expect(TokenType::RBrace)?;
         Ok(Statement::Block(Block {
             declarations: vec![],
-            statements: vec![],
+            statements: statements,
         }))
     }
 
