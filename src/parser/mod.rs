@@ -217,7 +217,19 @@ impl<E: TExprParser> Parser<E> {
         &mut self,
         data_type: DataType,
     ) -> Result<VariableDeclaration, ParserError> {
-        todo!()
+        let token = self
+            .context
+            .expect_matching("Id", |found| matches!(found, TokenType::Id(_)))?;
+
+        let TokenType::Id(identifier) = token.into_type() else {
+            unreachable!("identifier predicate must only accept TokenType::Id")
+        };
+        Ok(
+            VariableDeclaration::Scalar {
+               data_type,
+               name: identifier 
+            }
+        )
     }
 
     pub fn parse_declarations(&mut self) -> Result<Vec<VariableDeclaration>, ParserError> {
