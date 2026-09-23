@@ -168,11 +168,9 @@ impl<E: TExprParser> Parser<E> {
         );
 
         let content = if is_string {
-            let token = self
-                .context
-                .expect_matching("string literal", |found| {
-                    matches!(found, TokenType::StringConst(_))
-                })?;
+            let token = self.context.expect_matching("string literal", |found| {
+                matches!(found, TokenType::StringConst(_))
+            })?;
 
             let TokenType::StringConst(string) = token.into_type() else {
                 unreachable!("string predicate must only accept TokenType::StringConst")
