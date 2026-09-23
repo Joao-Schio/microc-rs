@@ -191,19 +191,19 @@ fn recognizes_not_equal() {
 #[test]
 fn recognizes_char_const() {
     let mut lexer = make_lexer("'a'");
-    assert_token(&mut lexer, TokenType::CharConst, "a");
+    assert_token(&mut lexer, TokenType::CharConst(b'a'), "a");
 }
 
 #[test]
 fn recognizes_symbol_char_const() {
     let mut lexer = make_lexer("'+'");
-    assert_token(&mut lexer, TokenType::CharConst, "+");
+    assert_token(&mut lexer, TokenType::CharConst(b'+'), "+");
 }
 
 #[test]
 fn char_const_consumes_closing_quote() {
     let mut lexer = make_lexer("'a'+");
-    assert_token(&mut lexer, TokenType::CharConst, "a");
+    assert_token(&mut lexer, TokenType::CharConst(b'a'), "a");
     assert_token(&mut lexer, TokenType::Plus, "+");
 }
 
@@ -242,25 +242,37 @@ fn newline_in_char_const_is_error() {
 #[test]
 fn recognizes_string_const() {
     let mut lexer = make_lexer("\"hello\"");
-    assert_token(&mut lexer, TokenType::StringConst, "hello");
+    assert_token(
+        &mut lexer,
+        TokenType::StringConst(b"hello".to_vec()),
+        "hello",
+    );
 }
 
 #[test]
 fn recognizes_empty_string_const() {
     let mut lexer = make_lexer("\"\"");
-    assert_token(&mut lexer, TokenType::StringConst, "");
+    assert_token(&mut lexer, TokenType::StringConst(Vec::new()), "");
 }
 
 #[test]
 fn recognizes_string_const_with_symbols() {
     let mut lexer = make_lexer("\"123 !@#$%\"");
-    assert_token(&mut lexer, TokenType::StringConst, "123 !@#$%");
+    assert_token(
+        &mut lexer,
+        TokenType::StringConst(b"123 !@#$%".to_vec()),
+        "123 !@#$%",
+    );
 }
 
 #[test]
 fn string_const_consumes_closing_quote() {
     let mut lexer = make_lexer("\"hello\"+");
-    assert_token(&mut lexer, TokenType::StringConst, "hello");
+    assert_token(
+        &mut lexer,
+        TokenType::StringConst(b"hello".to_vec()),
+        "hello",
+    );
     assert_token(&mut lexer, TokenType::Plus, "+");
 }
 
@@ -333,19 +345,23 @@ fn recognizes_mod() {
 #[test]
 fn recognizes_identifier() {
     let mut lexer = make_lexer("value");
-    assert_token(&mut lexer, TokenType::Id, "value");
+    assert_token(&mut lexer, TokenType::Id(b"value".to_vec()), "value");
 }
 
 #[test]
 fn recognizes_identifier_with_uppercase_digits_and_underscore() {
     let mut lexer = make_lexer("Value_123");
-    assert_token(&mut lexer, TokenType::Id, "Value_123");
+    assert_token(
+        &mut lexer,
+        TokenType::Id(b"Value_123".to_vec()),
+        "Value_123",
+    );
 }
 
 #[test]
 fn recognizes_identifier_starting_with_underscore() {
     let mut lexer = make_lexer("_value");
-    assert_token(&mut lexer, TokenType::Id, "_value");
+    assert_token(&mut lexer, TokenType::Id(b"_value".to_vec()), "_value");
 }
 
 #[test]
@@ -359,13 +375,13 @@ fn recognizes_injected_reserved_word() {
 fn reserved_word_match_is_exact() {
     let reserved_words = HashMap::from([("if", TokenType::If)]);
     let mut lexer = make_lexer_with_reserved_words("ifx", reserved_words);
-    assert_token(&mut lexer, TokenType::Id, "ifx");
+    assert_token(&mut lexer, TokenType::Id(b"ifx".to_vec()), "ifx");
 }
 
 #[test]
 fn identifier_does_not_consume_following_token() {
     let mut lexer = make_lexer("value+");
-    assert_token(&mut lexer, TokenType::Id, "value");
+    assert_token(&mut lexer, TokenType::Id(b"value".to_vec()), "value");
     assert_token(&mut lexer, TokenType::Plus, "+");
 }
 

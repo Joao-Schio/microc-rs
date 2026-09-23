@@ -107,7 +107,9 @@ pub(super) fn assert_token<L: TLexer>(
         .unwrap_or_else(|error| panic!("expected token, got lexer error: {error:?}"));
 
     assert_eq!(token.get_tok_type(), &expected_type);
-    assert_eq!(token.get_lexema(), expected_lexeme.as_bytes());
+
+    let lexeme = token.into_lexeme();
+    assert_eq!(lexeme.as_slice(), expected_lexeme.as_bytes());
 }
 
 pub(super) fn assert_lexer_error<L: TLexer>(lexer: &mut L) -> LexerError {

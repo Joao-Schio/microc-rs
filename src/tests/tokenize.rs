@@ -5,9 +5,8 @@ use crate::{
 
 use super::helpers::make_lexer;
 
-fn assert_token(token: &Token, expected_type: TokenType, expected_lexeme: &[u8]) {
+fn assert_token(token: &Token, expected_type: TokenType) {
     assert_eq!(token.get_tok_type(), &expected_type);
-    assert_eq!(token.get_lexema(), expected_lexeme);
 }
 
 #[test]
@@ -17,7 +16,7 @@ fn empty_source_returns_only_eof() {
     let tokens = tokenize(&mut lexer).expect("tokenization should succeed");
 
     assert_eq!(tokens.len(), 1);
-    assert_token(&tokens[0], TokenType::Eof, b"");
+    assert_token(&tokens[0], TokenType::Eof);
 }
 
 #[test]
@@ -28,10 +27,10 @@ fn collects_tokens_until_eof() {
 
     assert_eq!(tokens.len(), 4);
 
-    assert_token(&tokens[0], TokenType::Id, b"value");
-    assert_token(&tokens[1], TokenType::Plus, b"+");
-    assert_token(&tokens[2], TokenType::IntegerConst(123), b"123");
-    assert_token(&tokens[3], TokenType::Eof, b"");
+    assert_token(&tokens[0], TokenType::Id(b"value".to_vec()));
+    assert_token(&tokens[1], TokenType::Plus);
+    assert_token(&tokens[2], TokenType::IntegerConst(123));
+    assert_token(&tokens[3], TokenType::Eof);
 }
 
 #[test]
