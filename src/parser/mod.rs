@@ -242,6 +242,14 @@ impl<E: TExprParser> Parser<E> {
             if *self.context.current().token_type() == TokenType::RBrace {
                 break;
             }
+
+            if *self.context.current().token_type() == TokenType::Eof {
+                return Err(ParserError::UnexpectedToken {
+                    expected: "'}'",
+                    found: TokenType::Eof,
+                    line: self.context.current().line(),
+                });
+            }
             let statement = self.parse_statement()?;
             statements.push(statement);
         }
