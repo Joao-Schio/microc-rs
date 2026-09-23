@@ -6,7 +6,7 @@ use crate::{
 use super::helpers::make_lexer;
 
 fn assert_token(token: &Token, expected_type: TokenType) {
-    assert_eq!(token.get_tok_type(), &expected_type);
+    assert_eq!(token.token_type(), &expected_type);
 }
 
 #[test]
