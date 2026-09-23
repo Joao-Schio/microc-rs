@@ -5,7 +5,7 @@ use std::{error::Error, fmt, iter::Peekable, vec::IntoIter};
 use crate::{
     ast::{
         expression::Expression,
-        statement::{AssignmentTarget, PrintContent, Statement},
+        statement::{AssignmentTarget, Block, PrintContent, Statement},
     },
     token::{Token, TokenType},
 };
@@ -211,6 +211,15 @@ impl<E: TExprParser> Parser<E> {
         })
     }
 
+    pub fn parse_block(&mut self) -> Result<Statement, ParserError> {
+        self.context.expect(TokenType::LBrace, "'{'")?;
+        self.context.expect(TokenType::RBrace, "'}'")?;
+        Ok(Statement::Block(Block {
+            declarations: vec![],
+            statements: vec![],
+        }))
+    }
+
     pub fn parse_statement(&mut self) -> Result<Statement, ParserError> {
         match self.context.current().token_type() {
             TokenType::Id(_) => self.parse_assignment(),
@@ -218,6 +227,7 @@ impl<E: TExprParser> Parser<E> {
             TokenType::Print => self.parse_print(),
             TokenType::SemiColon => self.parse_empty(),
             TokenType::If => self.parse_if(),
+            TokenType::LBrace => self.parse_block(),
             found => {
                 let found = found.clone();
                 let line = self.context.current().line();

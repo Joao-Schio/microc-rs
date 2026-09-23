@@ -16,6 +16,31 @@ pub enum PrintContent {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum DataType {
+    Int,
+    Char,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum VariableDeclaration {
+    Scalar {
+        data_type: DataType,
+        name: Vec<u8>,
+    },
+    Array {
+        data_type: DataType,
+        name: Vec<u8>,
+        length: i64,
+    },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Block {
+    pub declarations: Vec<VariableDeclaration>,
+    pub statements: Vec<Statement>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum Statement {
     Assignment {
         target: AssignmentTarget,
@@ -32,5 +57,6 @@ pub enum Statement {
         then_branch: Box<Statement>,
         else_branch: Option<Box<Statement>>,
     },
+    Block(Block),
     Empty,
 }
