@@ -3,7 +3,7 @@ use crate::{
         expression::{BinaryOp, Expression},
         statement::{AssignmentTarget, PrintContent, Statement},
     },
-    parser::{Parser, ParserError},
+    parser::{ExprParser, Parser, ParserContext, ParserError, TExprParser, TStatementParser},
     token::{Token, TokenType},
 };
 
@@ -411,4 +411,24 @@ fn empty_statement_consumes_only_its_semicolon() {
             value: Expression::Integer(42),
         })
     );
+}
+
+struct StubStatementParser;
+
+impl<E: TExprParser> TStatementParser<E> for StubStatementParser {
+    fn parse_statement(
+        &mut self,
+        _context: &mut ParserContext,
+        _expr_parser: &mut E,
+    ) -> Result<Statement, ParserError> {
+        Ok(Statement::Empty)
+    }
+}
+
+#[test]
+fn parser_uses_injected_statement_parser() {
+    let tokens = vec![Token::new(TokenType::Eof, 1)];
+    let mut parser = Parser::with_parsers(tokens, ExprParser, StubStatementParser);
+
+    assert_eq!(parser.parse_statement(), Ok(Statement::Empty));
 }
