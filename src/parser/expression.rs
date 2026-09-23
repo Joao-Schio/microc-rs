@@ -76,8 +76,8 @@ impl ExprParser {
 
     #[inline]
     fn parse_identifier(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
-        let token = context
-            .expect_matching("identifier", |found| matches!(found, TokenType::Id(_)))?;
+        let token =
+            context.expect_matching("identifier", |found| matches!(found, TokenType::Id(_)))?;
 
         let TokenType::Id(identifier) = token.into_type() else {
             unreachable!("identifier predicate must only accept TokenType::Id")
