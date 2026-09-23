@@ -5,7 +5,9 @@ use std::{error::Error, fmt, iter::Peekable, vec::IntoIter};
 use crate::{
     ast::{
         expression::Expression,
-        statement::{AssignmentTarget, Block, PrintContent, Statement, VariableDeclaration},
+        statement::{
+            AssignmentTarget, Block, DataType, PrintContent, Statement, VariableDeclaration,
+        },
     },
     token::{Token, TokenType},
 };
@@ -211,16 +213,30 @@ impl<E: TExprParser> Parser<E> {
         })
     }
 
-    pub fn parse_declarations(&mut self) -> Result<Vec<VariableDeclaration>, ParserError> {
+    fn parse_variable_declarations(
+        &mut self,
+        data_type: DataType,
+    ) -> Result<VariableDeclaration, ParserError> {
         todo!()
+    }
+
+    pub fn parse_declarations(&mut self) -> Result<Vec<VariableDeclaration>, ParserError> {
+        let mut declarations = Vec::new();
+        loop {
+            match *self.context.current().token_type() {
+                TokenType::Char => {
+                    declarations.push(self.parse_variable_declarations(DataType::Char)?)
+                }
+                TokenType::Int => {
+                    declarations.push(self.parse_variable_declarations(DataType::Int)?)
+                }
+                _ => break,
+            }
+        }
+        Ok(declarations)
     }
 
     pub fn parse_statement_block(&mut self) -> Result<Vec<Statement>, ParserError> {
-        todo!()
-    }
-
-    pub fn parse_block(&mut self) -> Result<Statement, ParserError> {
-        self.context.expect(TokenType::LBrace)?;
         let mut statements = Vec::new();
         loop {
             if *self.context.current().token_type() == TokenType::RBrace {
@@ -229,10 +245,17 @@ impl<E: TExprParser> Parser<E> {
             let statement = self.parse_statement()?;
             statements.push(statement);
         }
+        Ok(statements)
+    }
+
+    pub fn parse_block(&mut self) -> Result<Statement, ParserError> {
+        self.context.expect(TokenType::LBrace)?;
+        let declarations = self.parse_declarations()?;
+        let statements = self.parse_statement_block()?;
         self.context.expect(TokenType::RBrace)?;
         Ok(Statement::Block(Block {
-            declarations: vec![],
-            statements: statements,
+            declarations,
+            statements,
         }))
     }
 
