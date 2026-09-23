@@ -257,7 +257,7 @@ impl<E: TExprParser> Parser<E> {
             }
 
             found => Err(ParserError::UnexpectedToken {
-                expected: "';' or '['",
+                expected: "';'",
                 found: found.clone(),
                 line: self.context.current().line(),
             }),
@@ -269,9 +269,11 @@ impl<E: TExprParser> Parser<E> {
         loop {
             match *self.context.current().token_type() {
                 TokenType::Char => {
+                    self.context.expect(TokenType::Char)?;
                     declarations.push(self.parse_variable_declarations(DataType::Char)?)
                 }
                 TokenType::Int => {
+                    self.context.expect(TokenType::Int)?;
                     declarations.push(self.parse_variable_declarations(DataType::Int)?)
                 }
                 _ => break,
