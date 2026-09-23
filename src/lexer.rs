@@ -262,19 +262,14 @@ impl<S: TScanner> Lexer<S> {
     fn match_optional_equal(
         &mut self,
         single_type: TokenType,
-        equal_type: TokenType) -> Result<Token, LexerError> {
+        equal_type: TokenType,
+    ) -> Result<Token, LexerError> {
         if self.scanner.peek_next() != Some(b'=') {
-            return Ok(Token::new(
-                single_type,
-                self.scanner.get_line()
-            ));
+            return Ok(Token::new(single_type, self.scanner.get_line()));
         }
 
         self.discard_next()?;
-        Ok(Token::new(
-            equal_type,
-            self.scanner.get_line()
-        ))
+        Ok(Token::new(equal_type, self.scanner.get_line()))
     }
 
     fn match_equal(&mut self) -> Result<Token, LexerError> {
@@ -304,7 +299,7 @@ impl<S: TScanner> Lexer<S> {
     fn match_required_pair(
         &mut self,
         expected: u8,
-        token_type: TokenType
+        token_type: TokenType,
     ) -> Result<Token, LexerError> {
         let (line, column) = self.token_start_location();
 
@@ -318,10 +313,7 @@ impl<S: TScanner> Lexer<S> {
 
         self.discard_next()?;
 
-        Ok(Token::new(
-            token_type,
-            self.scanner.get_line()
-        ))
+        Ok(Token::new(token_type, self.scanner.get_line()))
     }
 
     fn match_quotes(&mut self) -> Result<Token, LexerError> {
@@ -362,10 +354,7 @@ impl<S: TScanner> Lexer<S> {
                 column,
             })?;
 
-        Ok(Token::new(
-            TokenType::IntegerConst(integer),
-            line
-        ))
+        Ok(Token::new(TokenType::IntegerConst(integer), line))
     }
 }
 

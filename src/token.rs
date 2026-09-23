@@ -50,7 +50,7 @@ impl TokenType {
             Self::Char => Some("char"),
             Self::Comma => Some(","),
             Self::Div => Some("/"),
-            Self::Else => Some("Else"),
+            Self::Else => Some("else"),
             Self::Eof => None,
             Self::Eq => Some("=="),
             Self::For => Some("for"),
@@ -76,7 +76,7 @@ impl TokenType {
             Self::Return => Some("return"),
             Self::Rparen => Some(")"),
             Self::SemiColon => Some(";"),
-            Self::Int => Some("int")
+            Self::Int => Some("int"),
         }
     }
 }
@@ -87,14 +87,9 @@ pub struct Token {
     linha: usize,
 }
 
-
-
 impl Token {
     pub fn new(tipo: TokenType, linha: usize) -> Self {
-        Self {
-            tipo,
-            linha,
-        }
+        Self { tipo, linha }
     }
 
     pub fn get_tok_type(&self) -> &TokenType {
@@ -114,7 +109,7 @@ impl Token {
             TokenType::StringConst(str_const) => str_const,
             TokenType::Id(id) => id,
             TokenType::IntegerConst(integer) => integer.to_string().into_bytes(),
-            _ => b"unreachable".to_vec()
+            _ => b"unreachable".to_vec(),
         }
     }
 }
