@@ -246,7 +246,10 @@ fn parses_assignment_followed_by_return() {
 
 #[test]
 fn rejects_invalid_statement_start() {
-    let tokens = vec![Token::new(TokenType::Plus, 7), Token::new(TokenType::Eof, 7)];
+    let tokens = vec![
+        Token::new(TokenType::Plus, 7),
+        Token::new(TokenType::Eof, 7),
+    ];
 
     let mut parser = Parser::new(tokens);
 
