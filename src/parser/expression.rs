@@ -76,7 +76,9 @@ impl ExprParser {
 
     #[inline]
     fn parse_identifier(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
-        let identifier = context.expect(TokenType::Id, "identifier")?.into_lexeme();
+        let identifier = context
+            .expect_matching("identifier", |found| matches!(found, TokenType::Id(_)))?
+            .into_lexeme();
 
         match *context.current().get_tok_type() {
             TokenType::LBracket => self.parse_array_access(context, identifier),
@@ -94,15 +96,11 @@ impl ExprParser {
                 Ok(Expression::Integer(value))
             }
 
-            TokenType::Id => self.parse_identifier(context),
+            TokenType::Id(_) => self.parse_identifier(context),
 
-            TokenType::CharConst => {
-                let token = context.expect(TokenType::CharConst, "character literal")?;
-                let value = *token
-                    .get_lexema()
-                    .first()
-                    .expect("char const must have a byte at index 0");
-
+            TokenType::CharConst(value) => {
+                let value = *value;
+                context.advance();
                 Ok(Expression::Char(value))
             }
 
