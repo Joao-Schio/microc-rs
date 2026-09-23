@@ -105,7 +105,7 @@ impl<E: TExprParser> Parser<E> {
     }
 
     fn parse_assignment_target(&mut self) -> Result<AssignmentTarget, ParserError> {
-        let identifier = self.context.expect(TokenType::Id, "Id")?.into_lexeme();
+        let identifier = self.context.expect(TokenType::Id(), "Id")?.into_lexeme();
 
         match *self.context.current().get_tok_type() {
             TokenType::LBracket => {
@@ -145,11 +145,7 @@ impl<E: TExprParser> Parser<E> {
         self.context.expect(TokenType::Lparen, "'('")?;
 
         let content = match *self.context.current().get_tok_type() {
-            TokenType::StringConst => {
-                let lexeme = self
-                    .context
-                    .expect(TokenType::StringConst, "string literal")?
-                    .into_lexeme();
+            TokenType::StringConst(lexeme) => {
                 PrintContent::StringConst(lexeme)
             }
             _ => PrintContent::Expression(self.expr_parser.parse_expression(&mut self.context)?),
@@ -187,7 +183,7 @@ impl<E: TExprParser> Parser<E> {
 
     pub fn parse_statement(&mut self) -> Result<Statement, ParserError> {
         match self.context.current().get_tok_type() {
-            TokenType::Id => self.parse_assignment(),
+            TokenType::Id(name) => self.parse_assignment(),
             TokenType::Return => self.parse_return(),
             TokenType::Print => self.parse_print(),
             TokenType::SemiColon => self.parse_empty(),
