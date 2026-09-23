@@ -147,7 +147,7 @@ impl Token {
         self.linha
     }
 
-    pub const fn into_type(self) -> TokenType {
+    pub fn into_type(self) -> TokenType {
         self.tipo
     }
 
@@ -173,7 +173,7 @@ mod tests {
     const IF_TOKEN: Option<TokenType> = TokenType::from_keyword(b"if");
     const NOT_A_KEYWORD: Option<TokenType> = TokenType::from_keyword(b"ifx");
     const PLUS_LEXEME: Option<&[u8]> = TokenType::Plus.fixed_lexeme();
-    const TOKEN_LINE: usize = Token::new(TokenType::Plus, 7).get_linha();
+    const TOKEN: Token = Token::new(TokenType::Plus, 7);
 
     #[test]
     fn keyword_lookup_is_const_evaluable() {
@@ -187,7 +187,7 @@ mod tests {
     }
 
     #[test]
-    fn token_metadata_is_const_evaluable() {
-        assert_eq!(TOKEN_LINE, 7);
+    fn token_constructor_is_const_evaluable() {
+        assert_eq!(TOKEN.get_linha(), 7);
     }
 }
