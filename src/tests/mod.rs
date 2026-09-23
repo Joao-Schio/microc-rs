@@ -1,3 +1,6 @@
+#[macro_use]
+mod contracts;
+
 mod comments;
 mod helpers;
 mod lexer;

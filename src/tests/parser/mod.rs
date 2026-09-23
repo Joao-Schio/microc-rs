@@ -1,3 +1,6 @@
+#[macro_use]
+mod contracts;
+
 mod block;
 mod declaration;
 mod declaration_array;
