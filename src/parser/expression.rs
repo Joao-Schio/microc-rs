@@ -47,12 +47,12 @@ impl ExprParser {
         &mut self,
         context: &mut ParserContext,
     ) -> Result<Vec<Expression>, ParserError> {
-        if *context.current().get_tok_type() == TokenType::Rparen {
+        if *context.current().token_type() == TokenType::Rparen {
             return Ok(Vec::new());
         }
         let first = self.parse_expression(context)?;
         let mut arguments = vec![first];
-        while *context.current().get_tok_type() == TokenType::Comma {
+        while *context.current().token_type() == TokenType::Comma {
             context.advance();
             let arg = self.parse_expression(context)?;
             arguments.push(arg);
@@ -83,7 +83,7 @@ impl ExprParser {
             unreachable!("identifier predicate must only accept TokenType::Id")
         };
 
-        match *context.current().get_tok_type() {
+        match *context.current().token_type() {
             TokenType::LBracket => self.parse_array_access(context, identifier),
             TokenType::Lparen => self.parse_call(context, identifier),
             _ => Ok(Expression::Identifier(identifier)),
@@ -92,7 +92,7 @@ impl ExprParser {
 
     #[inline]
     fn parse_factor(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
-        match context.current().get_tok_type() {
+        match context.current().token_type() {
             TokenType::IntegerConst(value) => {
                 let value = *value;
                 context.advance();
@@ -123,7 +123,7 @@ impl ExprParser {
 
             found => {
                 let found = found.clone();
-                let line = context.current().get_linha();
+                let line = context.current().line();
                 Err(ParserError::UnexpectedToken {
                     expected: "expression",
                     found,
@@ -138,7 +138,7 @@ impl ExprParser {
         let mut expression = self.parse_factor(context)?;
 
         loop {
-            let op = match *context.current().get_tok_type() {
+            let op = match *context.current().token_type() {
                 TokenType::Mul => BinaryOp::Multiply,
                 TokenType::Div => BinaryOp::Divide,
                 TokenType::Mod => BinaryOp::Modulo,
@@ -164,7 +164,7 @@ impl ExprParser {
         let mut expression = self.parse_term(context)?;
 
         loop {
-            let op = match *context.current().get_tok_type() {
+            let op = match *context.current().token_type() {
                 TokenType::Plus => BinaryOp::Add,
                 TokenType::Minus => BinaryOp::Subtract,
                 _ => break,
@@ -188,7 +188,7 @@ impl ExprParser {
     fn parse_relational(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
         let left = self.parse_arithmetic(context)?;
 
-        let op = match *context.current().get_tok_type() {
+        let op = match *context.current().token_type() {
             TokenType::Eq => BinaryOp::Equal,
             TokenType::Neq => BinaryOp::NotEqual,
             TokenType::Lt => BinaryOp::Less,
@@ -214,7 +214,7 @@ impl ExprParser {
         let mut expression = self.parse_relational(context)?;
 
         loop {
-            let op = match *context.current().get_tok_type() {
+            let op = match *context.current().token_type() {
                 TokenType::And => BinaryOp::And,
                 TokenType::Or => BinaryOp::Or,
                 _ => break,
