@@ -1,11 +1,6 @@
-use std::collections::HashMap;
-
 use crate::{lexer::LexerError, token::TokenType};
 
-use super::helpers::{
-    assert_lexer_error, assert_token, make_failing_lexer, make_lexer,
-    make_lexer_with_reserved_words,
-};
+use super::helpers::{assert_lexer_error, assert_token, make_failing_lexer, make_lexer};
 
 fn assert_single_char_token(input: &str, expected_type: TokenType) {
     let mut lexer = make_lexer(input);
@@ -365,16 +360,8 @@ fn recognizes_identifier_starting_with_underscore() {
 }
 
 #[test]
-fn recognizes_injected_reserved_word() {
-    let reserved_words = HashMap::from([("if", TokenType::If)]);
-    let mut lexer = make_lexer_with_reserved_words("if", reserved_words);
-    assert_token(&mut lexer, TokenType::If, "if");
-}
-
-#[test]
 fn reserved_word_match_is_exact() {
-    let reserved_words = HashMap::from([("if", TokenType::If)]);
-    let mut lexer = make_lexer_with_reserved_words("ifx", reserved_words);
+    let mut lexer = make_lexer("ifx");
     assert_token(&mut lexer, TokenType::Id(b"ifx".to_vec()), "ifx");
 }
 

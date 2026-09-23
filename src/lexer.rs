@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, fmt};
+use std::{error::Error, fmt};
 
 use crate::{
     scanner::{ScannerError, TScanner},
@@ -117,15 +117,11 @@ pub trait TLexer {
 
 pub struct Lexer<S: TScanner> {
     scanner: S,
-    reserved_words: HashMap<&'static [u8], TokenType>,
 }
 
 impl<S: TScanner> Lexer<S> {
-    pub fn new(scanner: S, reserved_words: HashMap<&'static [u8], TokenType>) -> Self {
-        Self {
-            scanner,
-            reserved_words,
-        }
+    pub const fn new(scanner: S) -> Self {
+        Self { scanner }
     }
 
     fn token_start_location(&self) -> (usize, usize) {
@@ -211,7 +207,7 @@ impl<S: TScanner> Lexer<S> {
     }
 
     fn match_letters_tokens(&mut self, initial: u8) -> Result<Token, LexerError> {
-        let mut id = vec![initial];
+        let mut identifier = vec![initial];
 
         while let Some(next) = self.scanner.peek_next() {
             if !Self::is_allowed_identifier_character(next) {
@@ -219,16 +215,15 @@ impl<S: TScanner> Lexer<S> {
             }
 
             self.discard_next()?;
-            id.push(next);
+            identifier.push(next);
         }
 
-        let tipo = self
-            .reserved_words
-            .get(id.as_slice())
-            .cloned()
-            .unwrap_or(TokenType::Id(id));
+        let token_type = match TokenType::from_keyword(&identifier) {
+            Some(keyword) => keyword,
+            None => TokenType::Id(identifier),
+        };
 
-        Ok(Token::new(tipo, self.scanner.get_line()))
+        Ok(Token::new(token_type, self.scanner.get_line()))
     }
 
     fn match_single_quote(&mut self) -> Result<Token, LexerError> {

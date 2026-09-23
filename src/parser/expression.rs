@@ -76,9 +76,12 @@ impl ExprParser {
 
     #[inline]
     fn parse_identifier(&mut self, context: &mut ParserContext) -> Result<Expression, ParserError> {
-        let identifier = context
-            .expect_matching("identifier", |found| matches!(found, TokenType::Id(_)))?
-            .into_lexeme();
+        let token = context
+            .expect_matching("identifier", |found| matches!(found, TokenType::Id(_)))?;
+
+        let TokenType::Id(identifier) = token.into_type() else {
+            unreachable!("identifier predicate must only accept TokenType::Id")
+        };
 
         match *context.current().get_tok_type() {
             TokenType::LBracket => self.parse_array_access(context, identifier),

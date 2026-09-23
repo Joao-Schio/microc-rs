@@ -117,10 +117,13 @@ impl<E: TExprParser> Parser<E> {
     }
 
     fn parse_assignment_target(&mut self) -> Result<AssignmentTarget, ParserError> {
-        let identifier = self
+        let token = self
             .context
-            .expect_matching("Id", |found| matches!(found, TokenType::Id(_)))?
-            .into_lexeme();
+            .expect_matching("Id", |found| matches!(found, TokenType::Id(_)))?;
+
+        let TokenType::Id(identifier) = token.into_type() else {
+            unreachable!("identifier predicate must only accept TokenType::Id")
+        };
 
         match *self.context.current().get_tok_type() {
             TokenType::LBracket => {
@@ -165,13 +168,17 @@ impl<E: TExprParser> Parser<E> {
         );
 
         let content = if is_string {
-            let lexeme = self
+            let token = self
                 .context
                 .expect_matching("string literal", |found| {
                     matches!(found, TokenType::StringConst(_))
-                })?
-                .into_lexeme();
-            PrintContent::StringConst(lexeme)
+                })?;
+
+            let TokenType::StringConst(string) = token.into_type() else {
+                unreachable!("string predicate must only accept TokenType::StringConst")
+            };
+
+            PrintContent::StringConst(string)
         } else {
             PrintContent::Expression(self.expr_parser.parse_expression(&mut self.context)?)
         };

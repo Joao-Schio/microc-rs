@@ -1,12 +1,9 @@
-use std::collections::HashMap;
-
 use crate::token::TokenType;
 
-use super::helpers::{assert_token, make_lexer_with_reserved_words};
+use super::helpers::{assert_token, make_lexer};
 
-fn assert_reserved_word(input: &'static str, expected_type: TokenType) {
-    let reserved_words = HashMap::from([(input, expected_type.clone())]);
-    let mut lexer = make_lexer_with_reserved_words(input, reserved_words);
+fn assert_reserved_word(input: &str, expected_type: TokenType) {
+    let mut lexer = make_lexer(input);
     assert_token(&mut lexer, expected_type, input);
 }
 

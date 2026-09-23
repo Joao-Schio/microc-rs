@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     lexer::{Lexer, LexerError, TLexer},
     scanner::{ScannerError, TScanner},
@@ -78,23 +76,11 @@ impl TScanner for FailingScanner {
 }
 
 pub(super) fn make_lexer(input: &str) -> Lexer<DummyScanner> {
-    Lexer::new(DummyScanner::new(input), HashMap::new())
-}
-
-pub(super) fn make_lexer_with_reserved_words(
-    input: &str,
-    reserved_words: HashMap<&'static str, TokenType>,
-) -> Lexer<DummyScanner> {
-    let reserved_words: HashMap<&'static [u8], TokenType> = reserved_words
-        .into_iter()
-        .map(|(word, token_type)| (word.as_bytes(), token_type))
-        .collect();
-
-    Lexer::new(DummyScanner::new(input), reserved_words)
+    Lexer::new(DummyScanner::new(input))
 }
 
 pub(super) fn make_failing_lexer() -> Lexer<FailingScanner> {
-    Lexer::new(FailingScanner, HashMap::new())
+    Lexer::new(FailingScanner)
 }
 
 pub(super) fn assert_token<L: TLexer>(
