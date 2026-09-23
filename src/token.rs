@@ -85,6 +85,44 @@ impl TokenType {
             None
         }
     }
+
+    pub(crate) const fn get_expected_lexeme(&self) -> Option<&'static str> {
+        match self {
+            Self::IntegerConst(_) | Self::CharConst(_) | Self::StringConst(_) | Self::Id(_) => None,
+            Self::Eof => Some("end of file"),
+            Self::Plus => Some("'+'"),
+            Self::Minus => Some("'-'"),
+            Self::Mul => Some("'*'"),
+            Self::Div => Some("'/'"),
+            Self::Mod => Some("'%'"),
+            Self::Eq => Some("'=='"),
+            Self::Neq => Some("'!='"),
+            Self::Lt => Some("'<'"),
+            Self::Gt => Some("'>'"),
+            Self::Leq => Some("'<='"),
+            Self::Geq => Some("'>='"),
+            Self::And => Some("'&&'"),
+            Self::Or => Some("'||'"),
+            Self::Not => Some("'!'"),
+            Self::Assign => Some("'='"),
+            Self::SemiColon => Some("';'"),
+            Self::Comma => Some("','"),
+            Self::Lparen => Some("'('"),
+            Self::Rparen => Some("')'"),
+            Self::LBrace => Some("'{'"),
+            Self::RBrace => Some("'}'"),
+            Self::LBracket => Some("'['"),
+            Self::RBracket => Some("']'"),
+            Self::Main => Some("'main'"),
+            Self::If => Some("'if'"),
+            Self::Else => Some("'else'"),
+            Self::For => Some("'for'"),
+            Self::Return => Some("'return'"),
+            Self::Int => Some("'int'"),
+            Self::Char => Some("'char'"),
+            Self::Print => Some("'print'"),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -117,12 +155,19 @@ mod tests {
 
     const IF_TOKEN: Option<TokenType> = TokenType::from_keyword(b"if");
     const NOT_A_KEYWORD: Option<TokenType> = TokenType::from_keyword(b"ifx");
+    const PLUS_EXPECTED_LEXEME: Option<&str> = TokenType::Plus.get_expected_lexeme();
     const TOKEN: Token = Token::new(TokenType::Plus, 7);
 
     #[test]
     fn keyword_lookup_is_const_evaluable() {
         assert_eq!(IF_TOKEN, Some(TokenType::If));
         assert_eq!(NOT_A_KEYWORD, None);
+    }
+
+    #[test]
+    fn expected_lexeme_is_const_evaluable() {
+        assert_eq!(PLUS_EXPECTED_LEXEME, Some("'+'"));
+        assert_eq!(TokenType::Id(Vec::new()).get_expected_lexeme(), None);
     }
 
     #[test]
