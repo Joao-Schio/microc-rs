@@ -224,12 +224,10 @@ impl<E: TExprParser> Parser<E> {
         let TokenType::Id(identifier) = token.into_type() else {
             unreachable!("identifier predicate must only accept TokenType::Id")
         };
-        Ok(
-            VariableDeclaration::Scalar {
-               data_type,
-               name: identifier 
-            }
-        )
+        Ok(VariableDeclaration::Scalar {
+            data_type,
+            name: identifier,
+        })
     }
 
     pub fn parse_declarations(&mut self) -> Result<Vec<VariableDeclaration>, ParserError> {
