@@ -56,11 +56,11 @@ impl ParserContext {
         let _ = self.tokens.next();
     }
 
-    pub(crate) fn expect(
-        &mut self,
-        expected: TokenType,
-        expected_description: &'static str,
-    ) -> Result<Token, ParserError> {
+    pub(crate) fn expect(&mut self, expected: TokenType) -> Result<Token, ParserError> {
+        let expected_description = expected
+            .get_expected_lexeme()
+            .expect("ParserContext::expect requires a token type with a fixed expected lexeme");
+
         self.expect_matching(expected_description, |found| found == &expected)
     }
 
@@ -129,7 +129,7 @@ impl<E: TExprParser> Parser<E> {
             TokenType::LBracket => {
                 self.context.advance();
                 let expr = self.expr_parser.parse_expression(&mut self.context)?;
-                self.context.expect(TokenType::RBracket, "']'")?;
+                self.context.expect(TokenType::RBracket)?;
                 Ok(AssignmentTarget::ArrayElement {
                     array: identifier,
                     index: Box::new(expr),
@@ -141,26 +141,26 @@ impl<E: TExprParser> Parser<E> {
 
     fn parse_assignment(&mut self) -> Result<Statement, ParserError> {
         let target = self.parse_assignment_target()?;
-        self.context.expect(TokenType::Assign, "'='")?;
+        self.context.expect(TokenType::Assign)?;
         let value = self.expr_parser.parse_expression(&mut self.context)?;
-        self.context.expect(TokenType::SemiColon, "';'")?;
+        self.context.expect(TokenType::SemiColon)?;
         Ok(Statement::Assignment { target, value })
     }
 
     fn parse_return(&mut self) -> Result<Statement, ParserError> {
-        self.context.expect(TokenType::Return, "'return'")?;
+        self.context.expect(TokenType::Return)?;
 
         let value = match *self.context.current().token_type() {
             TokenType::SemiColon => None,
             _ => Some(self.expr_parser.parse_expression(&mut self.context)?),
         };
-        self.context.expect(TokenType::SemiColon, "';'")?;
+        self.context.expect(TokenType::SemiColon)?;
         Ok(Statement::Return { value })
     }
 
     fn parse_print(&mut self) -> Result<Statement, ParserError> {
-        self.context.expect(TokenType::Print, "'print'")?;
-        self.context.expect(TokenType::Lparen, "'('")?;
+        self.context.expect(TokenType::Print)?;
+        self.context.expect(TokenType::Lparen)?;
 
         let is_string = matches!(
             self.context.current().token_type(),
@@ -181,21 +181,21 @@ impl<E: TExprParser> Parser<E> {
             PrintContent::Expression(self.expr_parser.parse_expression(&mut self.context)?)
         };
 
-        self.context.expect(TokenType::Rparen, "')'")?;
-        self.context.expect(TokenType::SemiColon, "';'")?;
+        self.context.expect(TokenType::Rparen)?;
+        self.context.expect(TokenType::SemiColon)?;
         Ok(Statement::Print { content })
     }
 
     fn parse_empty(&mut self) -> Result<Statement, ParserError> {
-        self.context.expect(TokenType::SemiColon, "';'")?;
+        self.context.expect(TokenType::SemiColon)?;
         Ok(Statement::Empty)
     }
 
     fn parse_if(&mut self) -> Result<Statement, ParserError> {
-        self.context.advance();
-        self.context.expect(TokenType::Lparen, "'('")?;
+        self.context.expect(TokenType::If)?;
+        self.context.expect(TokenType::Lparen)?;
         let condition = self.expr_parser.parse_expression(&mut self.context)?;
-        self.context.expect(TokenType::Rparen, "')'")?;
+        self.context.expect(TokenType::Rparen)?;
         let then_branch = Box::new(self.parse_statement()?);
         let else_branch = match self.context.current().token_type() {
             TokenType::Else => {
@@ -212,8 +212,8 @@ impl<E: TExprParser> Parser<E> {
     }
 
     pub fn parse_block(&mut self) -> Result<Statement, ParserError> {
-        self.context.expect(TokenType::LBrace, "'{'")?;
-        self.context.expect(TokenType::RBrace, "'}'")?;
+        self.context.expect(TokenType::LBrace)?;
+        self.context.expect(TokenType::RBrace)?;
         Ok(Statement::Block(Block {
             declarations: vec![],
             statements: vec![],

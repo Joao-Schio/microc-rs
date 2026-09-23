@@ -36,7 +36,7 @@ impl ExprParser {
     ) -> Result<Expression, ParserError> {
         context.advance();
         let expr = self.parse_expression(context)?;
-        context.expect(TokenType::RBracket, "']'")?;
+        context.expect(TokenType::RBracket)?;
         Ok(Expression::ArrayAccess {
             array: identifier,
             index: Box::new(expr),
@@ -65,9 +65,9 @@ impl ExprParser {
         context: &mut ParserContext,
         identifier: Vec<u8>,
     ) -> Result<Expression, ParserError> {
-        context.expect(TokenType::Lparen, "'('")?;
+        context.expect(TokenType::Lparen)?;
         let args = self.parse_arguments(context)?;
-        context.expect(TokenType::Rparen, "')'")?;
+        context.expect(TokenType::Rparen)?;
         Ok(Expression::Call {
             callee: identifier,
             arguments: args,
@@ -112,7 +112,7 @@ impl ExprParser {
 
                 let expression = self.parse_expression(context)?;
 
-                context.expect(TokenType::Rparen, "')'")?;
+                context.expect(TokenType::Rparen)?;
 
                 Ok(expression)
             }
