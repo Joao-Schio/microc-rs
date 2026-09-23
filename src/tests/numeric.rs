@@ -21,9 +21,9 @@ fn recognizes_multi_digit_integer() {
 }
 
 #[test]
-fn preserves_leading_zeroes_in_integer_lexeme() {
+fn integer_lexeme_is_reconstructed_from_value() {
     let mut lexer = make_lexer("00123");
-    assert_token(&mut lexer, TokenType::IntegerConst(123), "00123");
+    assert_token(&mut lexer, TokenType::IntegerConst(123), "123");
 }
 
 #[test]
@@ -37,14 +37,14 @@ fn integer_does_not_consume_following_operator() {
 fn integer_does_not_consume_following_identifier() {
     let mut lexer = make_lexer("123abc");
     assert_token(&mut lexer, TokenType::IntegerConst(123), "123");
-    assert_token(&mut lexer, TokenType::Id, "abc");
+    assert_token(&mut lexer, TokenType::Id(b"abc".to_vec()), "abc");
 }
 
 #[test]
 fn scientific_notation_is_not_an_integer_literal() {
     let mut lexer = make_lexer("12E2");
     assert_token(&mut lexer, TokenType::IntegerConst(12), "12");
-    assert_token(&mut lexer, TokenType::Id, "E2");
+    assert_token(&mut lexer, TokenType::Id(b"E2".to_vec()), "E2");
 }
 
 #[test]

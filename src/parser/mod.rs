@@ -61,16 +61,28 @@ impl ParserContext {
         expected: TokenType,
         expected_description: &'static str,
     ) -> Result<Token, ParserError> {
-        let (found, line) = {
+        self.expect_matching(expected_description, |found| found == &expected)
+    }
+
+    pub(crate) fn expect_matching<F>(
+        &mut self,
+        expected_description: &'static str,
+        predicate: F,
+    ) -> Result<Token, ParserError>
+    where
+        F: FnOnce(&TokenType) -> bool,
+    {
+        let matches = {
             let current = self.current();
-            (current.get_tok_type(), current.get_linha())
+            predicate(current.token_type())
         };
 
-        if *found != expected {
+        if !matches {
+            let current = self.current();
             return Err(ParserError::UnexpectedToken {
                 expected: expected_description,
-                found: found.clone(),
-                line,
+                found: current.token_type().clone(),
+                line: current.line(),
             });
         }
 
@@ -105,9 +117,15 @@ impl<E: TExprParser> Parser<E> {
     }
 
     fn parse_assignment_target(&mut self) -> Result<AssignmentTarget, ParserError> {
-        let identifier = self.context.expect(TokenType::Id, "Id")?.into_lexeme();
+        let token = self
+            .context
+            .expect_matching("Id", |found| matches!(found, TokenType::Id(_)))?;
 
-        match *self.context.current().get_tok_type() {
+        let TokenType::Id(identifier) = token.into_type() else {
+            unreachable!("identifier predicate must only accept TokenType::Id")
+        };
+
+        match *self.context.current().token_type() {
             TokenType::LBracket => {
                 self.context.advance();
                 let expr = self.expr_parser.parse_expression(&mut self.context)?;
@@ -132,7 +150,7 @@ impl<E: TExprParser> Parser<E> {
     fn parse_return(&mut self) -> Result<Statement, ParserError> {
         self.context.expect(TokenType::Return, "'return'")?;
 
-        let value = match *self.context.current().get_tok_type() {
+        let value = match *self.context.current().token_type() {
             TokenType::SemiColon => None,
             _ => Some(self.expr_parser.parse_expression(&mut self.context)?),
         };
@@ -144,15 +162,23 @@ impl<E: TExprParser> Parser<E> {
         self.context.expect(TokenType::Print, "'print'")?;
         self.context.expect(TokenType::Lparen, "'('")?;
 
-        let content = match *self.context.current().get_tok_type() {
-            TokenType::StringConst => {
-                let lexeme = self
-                    .context
-                    .expect(TokenType::StringConst, "string literal")?
-                    .into_lexeme();
-                PrintContent::StringConst(lexeme)
-            }
-            _ => PrintContent::Expression(self.expr_parser.parse_expression(&mut self.context)?),
+        let is_string = matches!(
+            self.context.current().token_type(),
+            TokenType::StringConst(_)
+        );
+
+        let content = if is_string {
+            let token = self.context.expect_matching("string literal", |found| {
+                matches!(found, TokenType::StringConst(_))
+            })?;
+
+            let TokenType::StringConst(string) = token.into_type() else {
+                unreachable!("string predicate must only accept TokenType::StringConst")
+            };
+
+            PrintContent::StringConst(string)
+        } else {
+            PrintContent::Expression(self.expr_parser.parse_expression(&mut self.context)?)
         };
 
         self.context.expect(TokenType::Rparen, "')'")?;
@@ -171,7 +197,7 @@ impl<E: TExprParser> Parser<E> {
         let condition = self.expr_parser.parse_expression(&mut self.context)?;
         self.context.expect(TokenType::Rparen, "')'")?;
         let then_branch = Box::new(self.parse_statement()?);
-        let else_branch = match self.context.current().get_tok_type() {
+        let else_branch = match self.context.current().token_type() {
             TokenType::Else => {
                 self.context.advance();
                 Some(Box::new(self.parse_statement()?))
@@ -186,15 +212,15 @@ impl<E: TExprParser> Parser<E> {
     }
 
     pub fn parse_statement(&mut self) -> Result<Statement, ParserError> {
-        match self.context.current().get_tok_type() {
-            TokenType::Id => self.parse_assignment(),
+        match self.context.current().token_type() {
+            TokenType::Id(_) => self.parse_assignment(),
             TokenType::Return => self.parse_return(),
             TokenType::Print => self.parse_print(),
             TokenType::SemiColon => self.parse_empty(),
             TokenType::If => self.parse_if(),
             found => {
                 let found = found.clone();
-                let line = self.context.current().get_linha();
+                let line = self.context.current().line();
                 Err(ParserError::UnexpectedToken {
                     expected: "statement",
                     found,

@@ -5,7 +5,7 @@ use crate::{
 
 #[test]
 fn parser_error_message_includes_source_line() {
-    let tokens = vec![Token::new(TokenType::Plus, 7, b"+".to_vec())];
+    let tokens = vec![Token::new(TokenType::Plus, 7)];
     let mut parser = Parser::new(tokens);
 
     let error = parser

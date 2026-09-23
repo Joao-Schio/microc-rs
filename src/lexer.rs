@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, fmt};
+use std::{error::Error, fmt};
 
 use crate::{
     scanner::{ScannerError, TScanner},
@@ -10,7 +10,7 @@ pub fn tokenize<L: TLexer>(lexer: &mut L) -> Result<Vec<Token>, LexerError> {
 
     loop {
         let token = lexer.get_prox_token()?;
-        let is_eof = matches!(token.get_tok_type(), TokenType::Eof);
+        let is_eof = matches!(token.token_type(), TokenType::Eof);
 
         tokens.push(token);
 
@@ -117,15 +117,11 @@ pub trait TLexer {
 
 pub struct Lexer<S: TScanner> {
     scanner: S,
-    reserved_words: HashMap<&'static [u8], TokenType>,
 }
 
 impl<S: TScanner> Lexer<S> {
-    pub fn new(scanner: S, reserved_words: HashMap<&'static [u8], TokenType>) -> Self {
-        Self {
-            scanner,
-            reserved_words,
-        }
+    pub const fn new(scanner: S) -> Self {
+        Self { scanner }
     }
 
     fn token_start_location(&self) -> (usize, usize) {
@@ -168,11 +164,11 @@ impl<S: TScanner> Lexer<S> {
 
     fn lex_token(&mut self, initial: u8) -> Result<Token, LexerError> {
         match initial {
-            b'+' => Ok(self.single_char_token(TokenType::Plus, b'+')),
-            b'-' => Ok(self.single_char_token(TokenType::Minus, b'-')),
-            b'*' => Ok(self.single_char_token(TokenType::Mul, b'*')),
-            b'%' => Ok(self.single_char_token(TokenType::Mod, b'%')),
-            b'/' => Ok(self.single_char_token(TokenType::Div, b'/')),
+            b'+' => Ok(self.single_char_token(TokenType::Plus)),
+            b'-' => Ok(self.single_char_token(TokenType::Minus)),
+            b'*' => Ok(self.single_char_token(TokenType::Mul)),
+            b'%' => Ok(self.single_char_token(TokenType::Mod)),
+            b'/' => Ok(self.single_char_token(TokenType::Div)),
             b'=' => self.match_equal(),
             b'>' => self.match_greater(),
             b'<' => self.match_lesser(),
@@ -181,14 +177,14 @@ impl<S: TScanner> Lexer<S> {
             b'!' => self.match_not(),
             b'"' => self.match_quotes(),
             b'\'' => self.match_single_quote(),
-            b',' => Ok(self.single_char_token(TokenType::Comma, b',')),
-            b';' => Ok(self.single_char_token(TokenType::SemiColon, b';')),
-            b'(' => Ok(self.single_char_token(TokenType::Lparen, b'(')),
-            b')' => Ok(self.single_char_token(TokenType::Rparen, b')')),
-            b'{' => Ok(self.single_char_token(TokenType::LBrace, b'{')),
-            b'}' => Ok(self.single_char_token(TokenType::RBrace, b'}')),
-            b'[' => Ok(self.single_char_token(TokenType::LBracket, b'[')),
-            b']' => Ok(self.single_char_token(TokenType::RBracket, b']')),
+            b',' => Ok(self.single_char_token(TokenType::Comma)),
+            b';' => Ok(self.single_char_token(TokenType::SemiColon)),
+            b'(' => Ok(self.single_char_token(TokenType::Lparen)),
+            b')' => Ok(self.single_char_token(TokenType::Rparen)),
+            b'{' => Ok(self.single_char_token(TokenType::LBrace)),
+            b'}' => Ok(self.single_char_token(TokenType::RBrace)),
+            b'[' => Ok(self.single_char_token(TokenType::LBracket)),
+            b']' => Ok(self.single_char_token(TokenType::RBracket)),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.match_letters_tokens(initial),
             b'0'..=b'9' => self.match_numeric(initial),
             character => {
@@ -211,7 +207,7 @@ impl<S: TScanner> Lexer<S> {
     }
 
     fn match_letters_tokens(&mut self, initial: u8) -> Result<Token, LexerError> {
-        let mut id = vec![initial];
+        let mut identifier = vec![initial];
 
         while let Some(next) = self.scanner.peek_next() {
             if !Self::is_allowed_identifier_character(next) {
@@ -219,16 +215,15 @@ impl<S: TScanner> Lexer<S> {
             }
 
             self.discard_next()?;
-            id.push(next);
+            identifier.push(next);
         }
 
-        let tipo = self
-            .reserved_words
-            .get(id.as_slice())
-            .cloned()
-            .unwrap_or(TokenType::Id);
+        let token_type = match TokenType::from_keyword(&identifier) {
+            Some(keyword) => keyword,
+            None => TokenType::Id(identifier),
+        };
 
-        Ok(Token::new(tipo, self.scanner.get_line(), id))
+        Ok(Token::new(token_type, self.scanner.get_line()))
     }
 
     fn match_single_quote(&mut self) -> Result<Token, LexerError> {
@@ -245,7 +240,7 @@ impl<S: TScanner> Lexer<S> {
         let character = byte;
 
         match self.scanner.get_next()? {
-            Some(b'\'') => Ok(Token::new(TokenType::CharConst, line, vec![character])),
+            Some(b'\'') => Ok(Token::new(TokenType::CharConst(character), line)),
             Some(_) | None => Err(LexerError::InvalidCharacterLiteral { line, column }),
         }
     }
@@ -255,62 +250,51 @@ impl<S: TScanner> Lexer<S> {
         Ok(())
     }
 
-    fn single_char_token(&self, token_type: TokenType, lexeme: u8) -> Token {
-        Token::new(token_type, self.scanner.get_line(), vec![lexeme])
+    fn single_char_token(&self, token_type: TokenType) -> Token {
+        Token::new(token_type, self.scanner.get_line())
     }
 
     fn match_optional_equal(
         &mut self,
         single_type: TokenType,
         equal_type: TokenType,
-        single_lexeme: u8,
-        equal_lexeme: &[u8],
     ) -> Result<Token, LexerError> {
         if self.scanner.peek_next() != Some(b'=') {
-            return Ok(Token::new(
-                single_type,
-                self.scanner.get_line(),
-                vec![single_lexeme],
-            ));
+            return Ok(Token::new(single_type, self.scanner.get_line()));
         }
 
         self.discard_next()?;
-        Ok(Token::new(
-            equal_type,
-            self.scanner.get_line(),
-            equal_lexeme.to_owned(),
-        ))
+        Ok(Token::new(equal_type, self.scanner.get_line()))
     }
 
     fn match_equal(&mut self) -> Result<Token, LexerError> {
-        self.match_optional_equal(TokenType::Assign, TokenType::Eq, b'=', b"==")
+        self.match_optional_equal(TokenType::Assign, TokenType::Eq)
     }
 
     fn match_greater(&mut self) -> Result<Token, LexerError> {
-        self.match_optional_equal(TokenType::Gt, TokenType::Geq, b'>', b">=")
+        self.match_optional_equal(TokenType::Gt, TokenType::Geq)
     }
 
     fn match_lesser(&mut self) -> Result<Token, LexerError> {
-        self.match_optional_equal(TokenType::Lt, TokenType::Leq, b'<', b"<=")
+        self.match_optional_equal(TokenType::Lt, TokenType::Leq)
     }
 
     fn match_not(&mut self) -> Result<Token, LexerError> {
-        self.match_optional_equal(TokenType::Not, TokenType::Neq, b'!', b"!=")
+        self.match_optional_equal(TokenType::Not, TokenType::Neq)
     }
 
     fn match_and(&mut self) -> Result<Token, LexerError> {
-        self.match_required_pair(b'&', TokenType::And, b"&&")
+        self.match_required_pair(b'&', TokenType::And)
     }
 
     fn match_or(&mut self) -> Result<Token, LexerError> {
-        self.match_required_pair(b'|', TokenType::Or, b"||")
+        self.match_required_pair(b'|', TokenType::Or)
     }
 
     fn match_required_pair(
         &mut self,
         expected: u8,
         token_type: TokenType,
-        pair_lexeme: &[u8],
     ) -> Result<Token, LexerError> {
         let (line, column) = self.token_start_location();
 
@@ -324,11 +308,7 @@ impl<S: TScanner> Lexer<S> {
 
         self.discard_next()?;
 
-        Ok(Token::new(
-            token_type,
-            self.scanner.get_line(),
-            pair_lexeme.to_owned(),
-        ))
+        Ok(Token::new(token_type, self.scanner.get_line()))
     }
 
     fn match_quotes(&mut self) -> Result<Token, LexerError> {
@@ -338,7 +318,7 @@ impl<S: TScanner> Lexer<S> {
         loop {
             match self.scanner.get_next()? {
                 Some(b'"') => {
-                    return Ok(Token::new(TokenType::StringConst, line, buffer));
+                    return Ok(Token::new(TokenType::StringConst(buffer), line));
                 }
                 Some(b'\n') | None => {
                     return Err(LexerError::UnterminatedString { line, column });
@@ -369,11 +349,7 @@ impl<S: TScanner> Lexer<S> {
                 column,
             })?;
 
-        Ok(Token::new(
-            TokenType::IntegerConst(integer),
-            line,
-            buffer.into_bytes(),
-        ))
+        Ok(Token::new(TokenType::IntegerConst(integer), line))
     }
 }
 
@@ -381,7 +357,7 @@ impl<S: TScanner> TLexer for Lexer<S> {
     fn get_prox_token(&mut self) -> Result<Token, LexerError> {
         match self.get_next_meaningful_char()? {
             Some(initial) => self.lex_token(initial),
-            None => Ok(Token::new(TokenType::Eof, self.scanner.get_line(), vec![])),
+            None => Ok(Token::new(TokenType::Eof, self.scanner.get_line())),
         }
     }
 }

@@ -10,14 +10,14 @@ use crate::{
 #[test]
 fn parses_if_without_else() {
     let tokens = vec![
-        Token::new(TokenType::If, 1, b"if".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::Id, 1, b"x".to_vec()),
-        Token::new(TokenType::Rparen, 1, b")".to_vec()),
-        Token::new(TokenType::Return, 1, b"return".to_vec()),
-        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::If, 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::Id(b"x".to_vec()), 1),
+        Token::new(TokenType::Rparen, 1),
+        Token::new(TokenType::Return, 1),
+        Token::new(TokenType::IntegerConst(1), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -37,18 +37,18 @@ fn parses_if_without_else() {
 #[test]
 fn parses_if_with_else() {
     let tokens = vec![
-        Token::new(TokenType::If, 1, b"if".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::Id, 1, b"x".to_vec()),
-        Token::new(TokenType::Rparen, 1, b")".to_vec()),
-        Token::new(TokenType::Return, 1, b"return".to_vec()),
-        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Else, 1, b"else".to_vec()),
-        Token::new(TokenType::Return, 1, b"return".to_vec()),
-        Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::If, 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::Id(b"x".to_vec()), 1),
+        Token::new(TokenType::Rparen, 1),
+        Token::new(TokenType::Return, 1),
+        Token::new(TokenType::IntegerConst(1), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Else, 1),
+        Token::new(TokenType::Return, 1),
+        Token::new(TokenType::IntegerConst(2), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -70,13 +70,13 @@ fn parses_if_with_else() {
 #[test]
 fn if_requires_opening_parenthesis() {
     let tokens = vec![
-        Token::new(TokenType::If, 1, b"if".to_vec()),
-        Token::new(TokenType::Id, 1, b"x".to_vec()),
-        Token::new(TokenType::Rparen, 1, b")".to_vec()),
-        Token::new(TokenType::Return, 1, b"return".to_vec()),
-        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::If, 1),
+        Token::new(TokenType::Id(b"x".to_vec()), 1),
+        Token::new(TokenType::Rparen, 1),
+        Token::new(TokenType::Return, 1),
+        Token::new(TokenType::IntegerConst(1), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -85,7 +85,7 @@ fn if_requires_opening_parenthesis() {
         parser.parse_statement(),
         Err(ParserError::UnexpectedToken {
             expected: "'('",
-            found: TokenType::Id,
+            found: TokenType::Id(b"x".to_vec()),
             line: 1,
         })
     );
@@ -94,13 +94,13 @@ fn if_requires_opening_parenthesis() {
 #[test]
 fn if_requires_closing_parenthesis() {
     let tokens = vec![
-        Token::new(TokenType::If, 1, b"if".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::Id, 1, b"x".to_vec()),
-        Token::new(TokenType::Return, 1, b"return".to_vec()),
-        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::If, 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::Id(b"x".to_vec()), 1),
+        Token::new(TokenType::Return, 1),
+        Token::new(TokenType::IntegerConst(1), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -118,22 +118,22 @@ fn if_requires_closing_parenthesis() {
 #[test]
 fn else_binds_to_nearest_if() {
     let tokens = vec![
-        Token::new(TokenType::If, 1, b"if".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::Id, 1, b"a".to_vec()),
-        Token::new(TokenType::Rparen, 1, b")".to_vec()),
-        Token::new(TokenType::If, 2, b"if".to_vec()),
-        Token::new(TokenType::Lparen, 2, b"(".to_vec()),
-        Token::new(TokenType::Id, 2, b"b".to_vec()),
-        Token::new(TokenType::Rparen, 2, b")".to_vec()),
-        Token::new(TokenType::Return, 3, b"return".to_vec()),
-        Token::new(TokenType::IntegerConst(1), 3, b"1".to_vec()),
-        Token::new(TokenType::SemiColon, 3, b";".to_vec()),
-        Token::new(TokenType::Else, 4, b"else".to_vec()),
-        Token::new(TokenType::Return, 4, b"return".to_vec()),
-        Token::new(TokenType::IntegerConst(2), 4, b"2".to_vec()),
-        Token::new(TokenType::SemiColon, 4, b";".to_vec()),
-        Token::new(TokenType::Eof, 4, vec![]),
+        Token::new(TokenType::If, 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::Id(b"a".to_vec()), 1),
+        Token::new(TokenType::Rparen, 1),
+        Token::new(TokenType::If, 2),
+        Token::new(TokenType::Lparen, 2),
+        Token::new(TokenType::Id(b"b".to_vec()), 2),
+        Token::new(TokenType::Rparen, 2),
+        Token::new(TokenType::Return, 3),
+        Token::new(TokenType::IntegerConst(1), 3),
+        Token::new(TokenType::SemiColon, 3),
+        Token::new(TokenType::Else, 4),
+        Token::new(TokenType::Return, 4),
+        Token::new(TokenType::IntegerConst(2), 4),
+        Token::new(TokenType::SemiColon, 4),
+        Token::new(TokenType::Eof, 4),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -159,12 +159,12 @@ fn else_binds_to_nearest_if() {
 #[test]
 fn if_accepts_empty_statement_as_body() {
     let tokens = vec![
-        Token::new(TokenType::If, 1, b"if".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::Id, 1, b"x".to_vec()),
-        Token::new(TokenType::Rparen, 1, b")".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::If, 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::Id(b"x".to_vec()), 1),
+        Token::new(TokenType::Rparen, 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -182,15 +182,15 @@ fn if_accepts_empty_statement_as_body() {
 #[test]
 fn else_requires_statement() {
     let tokens = vec![
-        Token::new(TokenType::If, 1, b"if".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::Id, 1, b"x".to_vec()),
-        Token::new(TokenType::Rparen, 1, b")".to_vec()),
-        Token::new(TokenType::Return, 1, b"return".to_vec()),
-        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Else, 1, b"else".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::If, 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::Id(b"x".to_vec()), 1),
+        Token::new(TokenType::Rparen, 1),
+        Token::new(TokenType::Return, 1),
+        Token::new(TokenType::IntegerConst(1), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Else, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -208,18 +208,18 @@ fn else_requires_statement() {
 #[test]
 fn if_consumes_only_its_statement() {
     let tokens = vec![
-        Token::new(TokenType::If, 1, b"if".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::Id, 1, b"x".to_vec()),
-        Token::new(TokenType::Rparen, 1, b")".to_vec()),
-        Token::new(TokenType::Return, 1, b"return".to_vec()),
-        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Id, 2, b"y".to_vec()),
-        Token::new(TokenType::Assign, 2, b"=".to_vec()),
-        Token::new(TokenType::IntegerConst(2), 2, b"2".to_vec()),
-        Token::new(TokenType::SemiColon, 2, b";".to_vec()),
-        Token::new(TokenType::Eof, 2, vec![]),
+        Token::new(TokenType::If, 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::Id(b"x".to_vec()), 1),
+        Token::new(TokenType::Rparen, 1),
+        Token::new(TokenType::Return, 1),
+        Token::new(TokenType::IntegerConst(1), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Id(b"y".to_vec()), 2),
+        Token::new(TokenType::Assign, 2),
+        Token::new(TokenType::IntegerConst(2), 2),
+        Token::new(TokenType::SemiColon, 2),
+        Token::new(TokenType::Eof, 2),
     ];
 
     let mut parser = Parser::new(tokens);

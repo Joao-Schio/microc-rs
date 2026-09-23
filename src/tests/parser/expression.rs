@@ -17,8 +17,8 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_integer_expression() {
                 let tokens = vec![
-                    Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::IntegerConst(42), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(parse(tokens), Ok(Expression::Integer(42)));
@@ -26,7 +26,7 @@ macro_rules! expression_parser_contract {
 
             #[test]
             fn non_expression_token_returns_parser_error() {
-                let tokens = vec![Token::new(TokenType::Plus, 1, b"+".to_vec())];
+                let tokens = vec![Token::new(TokenType::Plus, 1)];
 
                 assert_eq!(
                     parse(tokens),
@@ -41,8 +41,8 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_identifier_expression() {
                 let tokens = vec![
-                    Token::new(TokenType::Id, 1, b"value".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Id(b"value".to_vec()), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(parse(tokens), Ok(Expression::Identifier(b"value".to_vec())));
@@ -51,8 +51,8 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_char_expression() {
                 let tokens = vec![
-                    Token::new(TokenType::CharConst, 1, b"a".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::CharConst(b'a'), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(parse(tokens), Ok(Expression::Char(b'a')));
@@ -61,10 +61,10 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_parenthesized_expression() {
                 let tokens = vec![
-                    Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-                    Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-                    Token::new(TokenType::Rparen, 1, b")".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Lparen, 1),
+                    Token::new(TokenType::IntegerConst(42), 1),
+                    Token::new(TokenType::Rparen, 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(parse(tokens), Ok(Expression::Integer(42)));
@@ -73,9 +73,9 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parenthesized_expression_requires_closing_parenthesis() {
                 let tokens = vec![
-                    Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-                    Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Lparen, 1),
+                    Token::new(TokenType::IntegerConst(42), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -91,9 +91,9 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_logical_not_expression() {
                 let tokens = vec![
-                    Token::new(TokenType::Not, 1, b"!".to_vec()),
-                    Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Not, 1),
+                    Token::new(TokenType::IntegerConst(42), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -108,9 +108,9 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_negative_number() {
                 let tokens = vec![
-                    Token::new(TokenType::Minus, 1, b"-".to_vec()),
-                    Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Minus, 1),
+                    Token::new(TokenType::IntegerConst(42), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -125,10 +125,10 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_chained_unary_expression() {
                 let tokens = vec![
-                    Token::new(TokenType::Minus, 1, b"-".to_vec()),
-                    Token::new(TokenType::Not, 1, b"!".to_vec()),
-                    Token::new(TokenType::Id, 1, b"value".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Minus, 1),
+                    Token::new(TokenType::Not, 1),
+                    Token::new(TokenType::Id(b"value".to_vec()), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -146,10 +146,10 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_multiplication_expression() {
                 let tokens = vec![
-                    Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
-                    Token::new(TokenType::Mul, 1, b"*".to_vec()),
-                    Token::new(TokenType::IntegerConst(3), 1, b"3".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::IntegerConst(2), 1),
+                    Token::new(TokenType::Mul, 1),
+                    Token::new(TokenType::IntegerConst(3), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -165,12 +165,12 @@ macro_rules! expression_parser_contract {
             #[test]
             fn multiplicative_operators_are_left_associative() {
                 let tokens = vec![
-                    Token::new(TokenType::IntegerConst(8), 1, b"8".to_vec()),
-                    Token::new(TokenType::Div, 1, b"/".to_vec()),
-                    Token::new(TokenType::IntegerConst(4), 1, b"4".to_vec()),
-                    Token::new(TokenType::Mul, 1, b"*".to_vec()),
-                    Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::IntegerConst(8), 1),
+                    Token::new(TokenType::Div, 1),
+                    Token::new(TokenType::IntegerConst(4), 1),
+                    Token::new(TokenType::Mul, 1),
+                    Token::new(TokenType::IntegerConst(2), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -190,12 +190,12 @@ macro_rules! expression_parser_contract {
             #[test]
             fn multiplication_has_higher_precedence_than_addition() {
                 let tokens = vec![
-                    Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-                    Token::new(TokenType::Plus, 1, b"+".to_vec()),
-                    Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
-                    Token::new(TokenType::Mul, 1, b"*".to_vec()),
-                    Token::new(TokenType::IntegerConst(3), 1, b"3".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::IntegerConst(1), 1),
+                    Token::new(TokenType::Plus, 1),
+                    Token::new(TokenType::IntegerConst(2), 1),
+                    Token::new(TokenType::Mul, 1),
+                    Token::new(TokenType::IntegerConst(3), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -215,10 +215,10 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_relational_expression() {
                 let tokens = vec![
-                    Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-                    Token::new(TokenType::Lt, 1, b"<".to_vec()),
-                    Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::IntegerConst(1), 1),
+                    Token::new(TokenType::Lt, 1),
+                    Token::new(TokenType::IntegerConst(2), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -234,14 +234,14 @@ macro_rules! expression_parser_contract {
             #[test]
             fn relational_operators_have_higher_precedence_than_logical_operators() {
                 let tokens = vec![
-                    Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-                    Token::new(TokenType::Lt, 1, b"<".to_vec()),
-                    Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
-                    Token::new(TokenType::And, 1, b"&&".to_vec()),
-                    Token::new(TokenType::IntegerConst(3), 1, b"3".to_vec()),
-                    Token::new(TokenType::Lt, 1, b"<".to_vec()),
-                    Token::new(TokenType::IntegerConst(4), 1, b"4".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::IntegerConst(1), 1),
+                    Token::new(TokenType::Lt, 1),
+                    Token::new(TokenType::IntegerConst(2), 1),
+                    Token::new(TokenType::And, 1),
+                    Token::new(TokenType::IntegerConst(3), 1),
+                    Token::new(TokenType::Lt, 1),
+                    Token::new(TokenType::IntegerConst(4), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -265,13 +265,13 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_array_access_expression() {
                 let tokens = vec![
-                    Token::new(TokenType::Id, 1, b"values".to_vec()),
-                    Token::new(TokenType::LBracket, 1, b"[".to_vec()),
-                    Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
-                    Token::new(TokenType::Plus, 1, b"+".to_vec()),
-                    Token::new(TokenType::IntegerConst(3), 1, b"3".to_vec()),
-                    Token::new(TokenType::RBracket, 1, b"]".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Id(b"values".to_vec()), 1),
+                    Token::new(TokenType::LBracket, 1),
+                    Token::new(TokenType::IntegerConst(2), 1),
+                    Token::new(TokenType::Plus, 1),
+                    Token::new(TokenType::IntegerConst(3), 1),
+                    Token::new(TokenType::RBracket, 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -290,10 +290,10 @@ macro_rules! expression_parser_contract {
             #[test]
             fn array_access_requires_closing_bracket() {
                 let tokens = vec![
-                    Token::new(TokenType::Id, 1, b"values".to_vec()),
-                    Token::new(TokenType::LBracket, 1, b"[".to_vec()),
-                    Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Id(b"values".to_vec()), 1),
+                    Token::new(TokenType::LBracket, 1),
+                    Token::new(TokenType::IntegerConst(2), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -309,10 +309,10 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_function_call_without_arguments() {
                 let tokens = vec![
-                    Token::new(TokenType::Id, 1, b"foo".to_vec()),
-                    Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-                    Token::new(TokenType::Rparen, 1, b")".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Id(b"foo".to_vec()), 1),
+                    Token::new(TokenType::Lparen, 1),
+                    Token::new(TokenType::Rparen, 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -327,11 +327,11 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_function_call_with_one_argument() {
                 let tokens = vec![
-                    Token::new(TokenType::Id, 1, b"foo".to_vec()),
-                    Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-                    Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-                    Token::new(TokenType::Rparen, 1, b")".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Id(b"foo".to_vec()), 1),
+                    Token::new(TokenType::Lparen, 1),
+                    Token::new(TokenType::IntegerConst(1), 1),
+                    Token::new(TokenType::Rparen, 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -346,15 +346,15 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_function_call_with_multiple_arguments() {
                 let tokens = vec![
-                    Token::new(TokenType::Id, 1, b"foo".to_vec()),
-                    Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-                    Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-                    Token::new(TokenType::Comma, 1, b",".to_vec()),
-                    Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
-                    Token::new(TokenType::Comma, 1, b",".to_vec()),
-                    Token::new(TokenType::IntegerConst(3), 1, b"3".to_vec()),
-                    Token::new(TokenType::Rparen, 1, b")".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Id(b"foo".to_vec()), 1),
+                    Token::new(TokenType::Lparen, 1),
+                    Token::new(TokenType::IntegerConst(1), 1),
+                    Token::new(TokenType::Comma, 1),
+                    Token::new(TokenType::IntegerConst(2), 1),
+                    Token::new(TokenType::Comma, 1),
+                    Token::new(TokenType::IntegerConst(3), 1),
+                    Token::new(TokenType::Rparen, 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -373,13 +373,13 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_expression_as_function_argument() {
                 let tokens = vec![
-                    Token::new(TokenType::Id, 1, b"foo".to_vec()),
-                    Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-                    Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-                    Token::new(TokenType::Plus, 1, b"+".to_vec()),
-                    Token::new(TokenType::IntegerConst(2), 1, b"2".to_vec()),
-                    Token::new(TokenType::Rparen, 1, b")".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Id(b"foo".to_vec()), 1),
+                    Token::new(TokenType::Lparen, 1),
+                    Token::new(TokenType::IntegerConst(1), 1),
+                    Token::new(TokenType::Plus, 1),
+                    Token::new(TokenType::IntegerConst(2), 1),
+                    Token::new(TokenType::Rparen, 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -398,14 +398,14 @@ macro_rules! expression_parser_contract {
             #[test]
             fn parses_nested_function_call() {
                 let tokens = vec![
-                    Token::new(TokenType::Id, 1, b"outer".to_vec()),
-                    Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-                    Token::new(TokenType::Id, 1, b"inner".to_vec()),
-                    Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-                    Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-                    Token::new(TokenType::Rparen, 1, b")".to_vec()),
-                    Token::new(TokenType::Rparen, 1, b")".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Id(b"outer".to_vec()), 1),
+                    Token::new(TokenType::Lparen, 1),
+                    Token::new(TokenType::Id(b"inner".to_vec()), 1),
+                    Token::new(TokenType::Lparen, 1),
+                    Token::new(TokenType::IntegerConst(1), 1),
+                    Token::new(TokenType::Rparen, 1),
+                    Token::new(TokenType::Rparen, 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -423,10 +423,10 @@ macro_rules! expression_parser_contract {
             #[test]
             fn function_call_requires_closing_parenthesis() {
                 let tokens = vec![
-                    Token::new(TokenType::Id, 1, b"foo".to_vec()),
-                    Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-                    Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Id(b"foo".to_vec()), 1),
+                    Token::new(TokenType::Lparen, 1),
+                    Token::new(TokenType::IntegerConst(1), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -442,12 +442,12 @@ macro_rules! expression_parser_contract {
             #[test]
             fn function_call_requires_expression_after_comma() {
                 let tokens = vec![
-                    Token::new(TokenType::Id, 1, b"foo".to_vec()),
-                    Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-                    Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-                    Token::new(TokenType::Comma, 1, b",".to_vec()),
-                    Token::new(TokenType::Rparen, 1, b")".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Id(b"foo".to_vec()), 1),
+                    Token::new(TokenType::Lparen, 1),
+                    Token::new(TokenType::IntegerConst(1), 1),
+                    Token::new(TokenType::Comma, 1),
+                    Token::new(TokenType::Rparen, 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -463,12 +463,12 @@ macro_rules! expression_parser_contract {
             #[test]
             fn zero_argument_call_composes_in_arithmetic_expression() {
                 let tokens = vec![
-                    Token::new(TokenType::Id, 1, b"foo".to_vec()),
-                    Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-                    Token::new(TokenType::Rparen, 1, b")".to_vec()),
-                    Token::new(TokenType::Plus, 1, b"+".to_vec()),
-                    Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-                    Token::new(TokenType::Eof, 1, vec![]),
+                    Token::new(TokenType::Id(b"foo".to_vec()), 1),
+                    Token::new(TokenType::Lparen, 1),
+                    Token::new(TokenType::Rparen, 1),
+                    Token::new(TokenType::Plus, 1),
+                    Token::new(TokenType::IntegerConst(1), 1),
+                    Token::new(TokenType::Eof, 1),
                 ];
 
                 assert_eq!(
@@ -502,7 +502,7 @@ impl TExprParser for StubExprParser {
 
 #[test]
 fn parser_uses_injected_expression_parser() {
-    let tokens = vec![Token::new(TokenType::Eof, 1, vec![])];
+    let tokens = vec![Token::new(TokenType::Eof, 1)];
     let mut parser = Parser::with_expr_parser(tokens, StubExprParser);
 
     assert_eq!(parser.parse_expression(), Ok(Expression::Integer(99)));

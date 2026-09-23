@@ -10,11 +10,11 @@ use crate::{
 #[test]
 fn parses_identifier_assignment() {
     let tokens = vec![
-        Token::new(TokenType::Id, 1, b"x".to_vec()),
-        Token::new(TokenType::Assign, 1, b"=".to_vec()),
-        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Id(b"x".to_vec()), 1),
+        Token::new(TokenType::Assign, 1),
+        Token::new(TokenType::IntegerConst(42), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -31,16 +31,16 @@ fn parses_identifier_assignment() {
 #[test]
 fn parses_array_element_assignment() {
     let tokens = vec![
-        Token::new(TokenType::Id, 1, b"values".to_vec()),
-        Token::new(TokenType::LBracket, 1, b"[".to_vec()),
-        Token::new(TokenType::Id, 1, b"i".to_vec()),
-        Token::new(TokenType::Plus, 1, b"+".to_vec()),
-        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-        Token::new(TokenType::RBracket, 1, b"]".to_vec()),
-        Token::new(TokenType::Assign, 1, b"=".to_vec()),
-        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Id(b"values".to_vec()), 1),
+        Token::new(TokenType::LBracket, 1),
+        Token::new(TokenType::Id(b"i".to_vec()), 1),
+        Token::new(TokenType::Plus, 1),
+        Token::new(TokenType::IntegerConst(1), 1),
+        Token::new(TokenType::RBracket, 1),
+        Token::new(TokenType::Assign, 1),
+        Token::new(TokenType::IntegerConst(42), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -64,10 +64,10 @@ fn parses_array_element_assignment() {
 #[test]
 fn assignment_requires_semicolon() {
     let tokens = vec![
-        Token::new(TokenType::Id, 1, b"x".to_vec()),
-        Token::new(TokenType::Assign, 1, b"=".to_vec()),
-        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Id(b"x".to_vec()), 1),
+        Token::new(TokenType::Assign, 1),
+        Token::new(TokenType::IntegerConst(42), 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -85,13 +85,13 @@ fn assignment_requires_semicolon() {
 #[test]
 fn array_assignment_requires_closing_bracket() {
     let tokens = vec![
-        Token::new(TokenType::Id, 1, b"values".to_vec()),
-        Token::new(TokenType::LBracket, 1, b"[".to_vec()),
-        Token::new(TokenType::Id, 1, b"i".to_vec()),
-        Token::new(TokenType::Assign, 1, b"=".to_vec()),
-        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Id(b"values".to_vec()), 1),
+        Token::new(TokenType::LBracket, 1),
+        Token::new(TokenType::Id(b"i".to_vec()), 1),
+        Token::new(TokenType::Assign, 1),
+        Token::new(TokenType::IntegerConst(42), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -110,16 +110,16 @@ fn array_assignment_requires_closing_bracket() {
 fn parses_consecutive_assignments() {
     let tokens = vec![
         // x = 1;
-        Token::new(TokenType::Id, 1, b"x".to_vec()),
-        Token::new(TokenType::Assign, 1, b"=".to_vec()),
-        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
+        Token::new(TokenType::Id(b"x".to_vec()), 1),
+        Token::new(TokenType::Assign, 1),
+        Token::new(TokenType::IntegerConst(1), 1),
+        Token::new(TokenType::SemiColon, 1),
         // y = 2;
-        Token::new(TokenType::Id, 2, b"y".to_vec()),
-        Token::new(TokenType::Assign, 2, b"=".to_vec()),
-        Token::new(TokenType::IntegerConst(2), 2, b"2".to_vec()),
-        Token::new(TokenType::SemiColon, 2, b";".to_vec()),
-        Token::new(TokenType::Eof, 2, vec![]),
+        Token::new(TokenType::Id(b"y".to_vec()), 2),
+        Token::new(TokenType::Assign, 2),
+        Token::new(TokenType::IntegerConst(2), 2),
+        Token::new(TokenType::SemiColon, 2),
+        Token::new(TokenType::Eof, 2),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -131,9 +131,9 @@ fn parses_consecutive_assignments() {
 #[test]
 fn parses_return_without_value() {
     let tokens = vec![
-        Token::new(TokenType::Return, 1, b"return".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Return, 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -147,10 +147,10 @@ fn parses_return_without_value() {
 #[test]
 fn parses_return_with_value() {
     let tokens = vec![
-        Token::new(TokenType::Return, 1, b"return".to_vec()),
-        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Return, 1),
+        Token::new(TokenType::IntegerConst(42), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -166,15 +166,15 @@ fn parses_return_with_value() {
 #[test]
 fn parses_expression_in_return() {
     let tokens = vec![
-        Token::new(TokenType::Return, 1, b"return".to_vec()),
-        Token::new(TokenType::Id, 1, b"x".to_vec()),
-        Token::new(TokenType::Plus, 1, b"+".to_vec()),
-        Token::new(TokenType::Id, 1, b"foo".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-        Token::new(TokenType::Rparen, 1, b")".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Return, 1),
+        Token::new(TokenType::Id(b"x".to_vec()), 1),
+        Token::new(TokenType::Plus, 1),
+        Token::new(TokenType::Id(b"foo".to_vec()), 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::IntegerConst(1), 1),
+        Token::new(TokenType::Rparen, 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -197,9 +197,9 @@ fn parses_expression_in_return() {
 #[test]
 fn return_requires_semicolon() {
     let tokens = vec![
-        Token::new(TokenType::Return, 1, b"return".to_vec()),
-        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Return, 1),
+        Token::new(TokenType::IntegerConst(42), 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -217,14 +217,14 @@ fn return_requires_semicolon() {
 #[test]
 fn parses_assignment_followed_by_return() {
     let tokens = vec![
-        Token::new(TokenType::Id, 1, b"x".to_vec()),
-        Token::new(TokenType::Assign, 1, b"=".to_vec()),
-        Token::new(TokenType::IntegerConst(1), 1, b"1".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Return, 2, b"return".to_vec()),
-        Token::new(TokenType::Id, 2, b"x".to_vec()),
-        Token::new(TokenType::SemiColon, 2, b";".to_vec()),
-        Token::new(TokenType::Eof, 2, vec![]),
+        Token::new(TokenType::Id(b"x".to_vec()), 1),
+        Token::new(TokenType::Assign, 1),
+        Token::new(TokenType::IntegerConst(1), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Return, 2),
+        Token::new(TokenType::Id(b"x".to_vec()), 2),
+        Token::new(TokenType::SemiColon, 2),
+        Token::new(TokenType::Eof, 2),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -247,8 +247,8 @@ fn parses_assignment_followed_by_return() {
 #[test]
 fn rejects_invalid_statement_start() {
     let tokens = vec![
-        Token::new(TokenType::Plus, 7, b"+".to_vec()),
-        Token::new(TokenType::Eof, 7, vec![]),
+        Token::new(TokenType::Plus, 7),
+        Token::new(TokenType::Eof, 7),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -266,12 +266,12 @@ fn rejects_invalid_statement_start() {
 #[test]
 fn parses_print_string() {
     let tokens = vec![
-        Token::new(TokenType::Print, 1, b"print".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::StringConst, 1, b"hello".to_vec()),
-        Token::new(TokenType::Rparen, 1, b")".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Print, 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::StringConst(b"hello".to_vec()), 1),
+        Token::new(TokenType::Rparen, 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -287,14 +287,14 @@ fn parses_print_string() {
 #[test]
 fn parses_print_expression() {
     let tokens = vec![
-        Token::new(TokenType::Print, 1, b"print".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::Id, 1, b"a".to_vec()),
-        Token::new(TokenType::Plus, 1, b"+".to_vec()),
-        Token::new(TokenType::Id, 1, b"b".to_vec()),
-        Token::new(TokenType::Rparen, 1, b")".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Print, 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::Id(b"a".to_vec()), 1),
+        Token::new(TokenType::Plus, 1),
+        Token::new(TokenType::Id(b"b".to_vec()), 1),
+        Token::new(TokenType::Rparen, 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -314,11 +314,11 @@ fn parses_print_expression() {
 #[test]
 fn print_requires_closing_parenthesis() {
     let tokens = vec![
-        Token::new(TokenType::Print, 1, b"print".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Print, 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::IntegerConst(42), 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -336,11 +336,11 @@ fn print_requires_closing_parenthesis() {
 #[test]
 fn print_requires_semicolon() {
     let tokens = vec![
-        Token::new(TokenType::Print, 1, b"print".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::IntegerConst(42), 1, b"42".to_vec()),
-        Token::new(TokenType::Rparen, 1, b")".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Print, 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::IntegerConst(42), 1),
+        Token::new(TokenType::Rparen, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -358,11 +358,11 @@ fn print_requires_semicolon() {
 #[test]
 fn rejects_empty_print() {
     let tokens = vec![
-        Token::new(TokenType::Print, 1, b"print".to_vec()),
-        Token::new(TokenType::Lparen, 1, b"(".to_vec()),
-        Token::new(TokenType::Rparen, 1, b")".to_vec()),
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::Print, 1),
+        Token::new(TokenType::Lparen, 1),
+        Token::new(TokenType::Rparen, 1),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -380,8 +380,8 @@ fn rejects_empty_print() {
 #[test]
 fn parses_empty_statement() {
     let tokens = vec![
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Eof, 1, vec![]),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Eof, 1),
     ];
 
     let mut parser = Parser::new(tokens);
@@ -392,12 +392,12 @@ fn parses_empty_statement() {
 #[test]
 fn empty_statement_consumes_only_its_semicolon() {
     let tokens = vec![
-        Token::new(TokenType::SemiColon, 1, b";".to_vec()),
-        Token::new(TokenType::Id, 2, b"x".to_vec()),
-        Token::new(TokenType::Assign, 2, b"=".to_vec()),
-        Token::new(TokenType::IntegerConst(42), 2, b"42".to_vec()),
-        Token::new(TokenType::SemiColon, 2, b";".to_vec()),
-        Token::new(TokenType::Eof, 2, vec![]),
+        Token::new(TokenType::SemiColon, 1),
+        Token::new(TokenType::Id(b"x".to_vec()), 2),
+        Token::new(TokenType::Assign, 2),
+        Token::new(TokenType::IntegerConst(42), 2),
+        Token::new(TokenType::SemiColon, 2),
+        Token::new(TokenType::Eof, 2),
     ];
 
     let mut parser = Parser::new(tokens);
