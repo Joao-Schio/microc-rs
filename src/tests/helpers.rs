@@ -83,19 +83,60 @@ pub(super) fn make_failing_lexer() -> Lexer<FailingScanner> {
     Lexer::new(FailingScanner)
 }
 
+fn canonical_spelling(token_type: &TokenType) -> Vec<u8> {
+    match token_type {
+        TokenType::IntegerConst(value) => value.to_string().into_bytes(),
+        TokenType::CharConst(value) => vec![*value],
+        TokenType::StringConst(value) | TokenType::Id(value) => value.clone(),
+        TokenType::Eof => Vec::new(),
+        TokenType::Plus => b"+".to_vec(),
+        TokenType::Minus => b"-".to_vec(),
+        TokenType::Mul => b"*".to_vec(),
+        TokenType::Div => b"/".to_vec(),
+        TokenType::Mod => b"%".to_vec(),
+        TokenType::Eq => b"==".to_vec(),
+        TokenType::Neq => b"!=".to_vec(),
+        TokenType::Lt => b"<".to_vec(),
+        TokenType::Gt => b">".to_vec(),
+        TokenType::Leq => b"<=".to_vec(),
+        TokenType::Geq => b">=".to_vec(),
+        TokenType::And => b"&&".to_vec(),
+        TokenType::Or => b"||".to_vec(),
+        TokenType::Not => b"!".to_vec(),
+        TokenType::Assign => b"=".to_vec(),
+        TokenType::SemiColon => b";".to_vec(),
+        TokenType::Comma => b",".to_vec(),
+        TokenType::Lparen => b"(".to_vec(),
+        TokenType::Rparen => b")".to_vec(),
+        TokenType::LBrace => b"{".to_vec(),
+        TokenType::RBrace => b"}".to_vec(),
+        TokenType::LBracket => b"[".to_vec(),
+        TokenType::RBracket => b"]".to_vec(),
+        TokenType::Main => b"main".to_vec(),
+        TokenType::If => b"if".to_vec(),
+        TokenType::Else => b"else".to_vec(),
+        TokenType::For => b"for".to_vec(),
+        TokenType::Return => b"return".to_vec(),
+        TokenType::Int => b"int".to_vec(),
+        TokenType::Char => b"char".to_vec(),
+        TokenType::Print => b"print".to_vec(),
+    }
+}
+
 pub(super) fn assert_token<L: TLexer>(
     lexer: &mut L,
     expected_type: TokenType,
-    expected_lexeme: &str,
+    expected_spelling: &str,
 ) {
     let token = lexer
         .get_prox_token()
         .unwrap_or_else(|error| panic!("expected token, got lexer error: {error:?}"));
 
-    assert_eq!(token.get_tok_type(), &expected_type);
-
-    let lexeme = token.into_lexeme();
-    assert_eq!(lexeme.as_slice(), expected_lexeme.as_bytes());
+    assert_eq!(token.token_type(), &expected_type);
+    assert_eq!(
+        canonical_spelling(token.token_type()).as_slice(),
+        expected_spelling.as_bytes()
+    );
 }
 
 pub(super) fn assert_lexer_error<L: TLexer>(lexer: &mut L) -> LexerError {
