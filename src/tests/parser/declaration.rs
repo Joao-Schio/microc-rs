@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         expression::Expression,
-        statement::{Assignment, Block, Type, LValue, Statement, VariableDeclaration},
+        statement::{Assignment, Block, LValue, Statement, Type, VariableDeclaration},
     },
     parser::ParserError,
     token::{Token, TokenType},

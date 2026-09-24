@@ -1,6 +1,6 @@
 use crate::{
     ast::statement::{
-        Assignment, Block, Type, LValue, PrintContent, Statement, VariableDeclaration,
+        Assignment, Block, LValue, PrintContent, Statement, Type, VariableDeclaration,
     },
     token::TokenType,
 };
@@ -264,8 +264,6 @@ impl StatementParser {
             statements,
         }))
     }
-
-
 
     fn parse_for<E: TExprParser>(
         &mut self,

@@ -1,5 +1,5 @@
 use crate::{
-    ast::statement::{Block, Type, Statement, VariableDeclaration},
+    ast::statement::{Block, Statement, Type, VariableDeclaration},
     parser::ParserError,
     token::{Token, TokenType},
 };

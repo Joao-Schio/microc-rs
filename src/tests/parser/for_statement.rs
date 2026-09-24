@@ -1,7 +1,9 @@
 use crate::{
     ast::{
-        expression::{BinaryOp, Expression}, statement::{Assignment, Block, LValue, Statement},
-    }, token::{Token, TokenType},
+        expression::{BinaryOp, Expression},
+        statement::{Assignment, Block, LValue, Statement},
+    },
+    token::{Token, TokenType},
 };
 
 parser_contract!(
