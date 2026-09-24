@@ -18,7 +18,21 @@ pub trait TStatementParser<E: TExprParser> {
         &mut self,
         context: &mut ParserContext,
         expr_parser: &mut E,
-    ) -> Result<Block, ParserError>;
+    ) -> Result<Block, ParserError> {
+        if !matches!(context.current().token_type(), TokenType::LBrace) {
+            let current = context.current();
+            return Err(ParserError::UnexpectedToken {
+                expected: "'{'",
+                found: current.token_type().clone(),
+                line: current.line(),
+            });
+        }
+
+        match self.parse_statement(context, expr_parser)? {
+            Statement::Block(block) => Ok(block),
+            _ => Err(ParserError::ExpectedBlock),
+        }
+    }
 }
 
 #[derive(Default)]
