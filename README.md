@@ -5,7 +5,7 @@
 </p>
 
 [![CI](https://github.com/Joao-Schio/microc-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/Joao-Schio/microc-rs/actions/workflows/ci.yml)
-[![Coverage](.github/badges/coverage.svg)](https://github.com/Joao-Schio/microc-rs/actions/workflows/coverage.yml)
+[![Coverage](https://raw.githubusercontent.com/Joao-Schio/microc-rs/coverage-badge/.github/badges/coverage.svg)](https://github.com/Joao-Schio/microc-rs/actions/workflows/coverage.yml)
 
 A from-scratch implementation of the **Micro C** compiler written in Rust.
 
@@ -269,7 +269,7 @@ Run the test suite with:
 cargo test
 ```
 
-Line coverage is measured in CI with `cargo-llvm-cov`, and the coverage badge at the top of this README is updated from the `main` branch.
+Line coverage is measured in CI with `cargo-llvm-cov`. Coverage is calculated from `main`, while the generated badge is stored on the dedicated `coverage-badge` branch so badge updates do not add commits to the development history.
 
 To generate a coverage report locally:
 
