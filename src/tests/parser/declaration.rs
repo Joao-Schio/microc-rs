@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         expression::Expression,
-        statement::{AssignmentTarget, Block, DataType, Statement, VariableDeclaration},
+        statement::{Assignment, Block, DataType, LValue, Statement, VariableDeclaration},
     },
     parser::ParserError,
     token::{Token, TokenType},
@@ -120,10 +120,10 @@ parser_contract!(
                         data_type: DataType::Int,
                         name: b"x".to_vec(),
                     }],
-                    statements: vec![Statement::Assignment {
-                        target: AssignmentTarget::Identifier(b"x".to_vec()),
+                    statements: vec![Statement::Assignment(Assignment {
+                        target: LValue::Identifier(b"x".to_vec()),
                         value: Expression::Integer(10),
-                    }],
+                    })],
                 }))
             );
         }
