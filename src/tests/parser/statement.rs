@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         expression::{BinaryOp, Expression},
-        statement::{AssignmentTarget, PrintContent, Statement},
+        statement::{Assignment, LValue, PrintContent, Statement},
     },
     parser::{ExprParser, Parser, ParserContext, ParserError, TExprParser, TStatementParser},
     token::{Token, TokenType},
@@ -26,10 +26,10 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Assignment {
-                    target: AssignmentTarget::Identifier(b"x".to_vec()),
+                Ok(Statement::Assignment(Assignment {
+                    target: LValue::Identifier(b"x".to_vec()),
                     value: Expression::Integer(42),
-                })
+                }))
             );
         }
 
@@ -52,8 +52,8 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Assignment {
-                    target: AssignmentTarget::ArrayElement {
+                Ok(Statement::Assignment(Assignment {
+                    target: LValue::ArrayElement {
                         array: b"values".to_vec(),
                         index: Box::new(Expression::Binary {
                             left: Box::new(Expression::Identifier(b"i".to_vec())),
@@ -62,7 +62,7 @@ parser_contract!(
                         }),
                     },
                     value: Expression::Integer(42),
-                })
+                }))
             );
         }
 
@@ -234,10 +234,10 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Assignment {
-                    target: AssignmentTarget::Identifier(b"x".to_vec()),
+                Ok(Statement::Assignment(Assignment {
+                    target: LValue::Identifier(b"x".to_vec()),
                     value: Expression::Integer(1),
-                })
+                }))
             );
             assert_eq!(
                 parser.parse_statement(),
@@ -409,10 +409,10 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Assignment {
-                    target: AssignmentTarget::Identifier(b"x".to_vec()),
+                Ok(Statement::Assignment(Assignment {
+                    target: LValue::Identifier(b"x".to_vec()),
                     value: Expression::Integer(42),
-                })
+                }))
             );
         }
     }
