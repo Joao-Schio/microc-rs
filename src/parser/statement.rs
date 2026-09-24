@@ -13,6 +13,26 @@ pub trait TStatementParser<E: TExprParser> {
         context: &mut ParserContext,
         expr_parser: &mut E,
     ) -> Result<Statement, ParserError>;
+
+    fn parse_block(
+        &mut self,
+        context: &mut ParserContext,
+        expr_parser: &mut E,
+    ) -> Result<Block, ParserError> {
+        if !matches!(context.current().token_type(), TokenType::LBrace) {
+            let current = context.current();
+            return Err(ParserError::UnexpectedToken {
+                expected: "'{'",
+                found: current.token_type().clone(),
+                line: current.line(),
+            });
+        }
+
+        match self.parse_statement(context, expr_parser)? {
+            Statement::Block(block) => Ok(block),
+            _ => Err(ParserError::ExpectedBlock),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -235,7 +255,7 @@ impl StatementParser {
         Ok(statements)
     }
 
-    pub(super) fn parse_block<E: TExprParser>(
+    fn parse_block_inner<E: TExprParser>(
         &mut self,
         context: &mut ParserContext,
         expr_parser: &mut E,
@@ -250,19 +270,14 @@ impl StatementParser {
         })
     }
 
-    pub(super) fn parse_bock_statement<E: TExprParser>(
+    fn parse_block_statement<E: TExprParser>(
         &mut self,
         context: &mut ParserContext,
         expr_parser: &mut E,
     ) -> Result<Statement, ParserError> {
-        context.expect(TokenType::LBrace)?;
-        let declarations = self.parse_declarations(context)?;
-        let statements = self.parse_statement_block(context, expr_parser)?;
-        context.expect(TokenType::RBrace)?;
-        Ok(Statement::Block(Block {
-            declarations,
-            statements,
-        }))
+        Ok(Statement::Block(
+            self.parse_block_inner(context, expr_parser)?,
+        ))
     }
 
     fn parse_for<E: TExprParser>(
@@ -305,7 +320,7 @@ impl<E: TExprParser> TStatementParser<E> for StatementParser {
             TokenType::Print => self.parse_print(context, expr_parser),
             TokenType::SemiColon => self.parse_empty(context),
             TokenType::If => self.parse_if(context, expr_parser),
-            TokenType::LBrace => self.parse_bock_statement(context, expr_parser),
+            TokenType::LBrace => self.parse_block_statement(context, expr_parser),
             TokenType::For => self.parse_for(context, expr_parser),
             found => {
                 let found = found.clone();
@@ -317,5 +332,13 @@ impl<E: TExprParser> TStatementParser<E> for StatementParser {
                 })
             }
         }
+    }
+
+    fn parse_block(
+        &mut self,
+        context: &mut ParserContext,
+        expr_parser: &mut E,
+    ) -> Result<Block, ParserError> {
+        self.parse_block_inner(context, expr_parser)
     }
 }

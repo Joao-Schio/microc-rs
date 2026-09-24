@@ -6,7 +6,7 @@ use std::{error::Error, fmt, iter::Peekable, vec::IntoIter};
 use crate::{
     ast::{
         expression::Expression,
-        program::{FunctionDefinition, Parameter, Program},
+        program::{GenericFunction, MainFunction, Parameter, Program},
         statement::{Statement, Type, VariableDeclaration},
     },
     token::{Token, TokenType},
@@ -23,6 +23,9 @@ pub enum ParserError {
         line: usize,
     },
     ExpectedBlock,
+    InvalidMainReturnType {
+        found: Type,
+    },
 }
 
 impl fmt::Display for ParserError {
@@ -34,6 +37,9 @@ impl fmt::Display for ParserError {
                 line,
             } => write!(f, "expected {expected}, found {found:?} at line {line}"),
             Self::ExpectedBlock => write!(f, "expected a block"),
+            Self::InvalidMainReturnType { found } => {
+                write!(f, "main must return int, found {found:?}")
+            }
         }
     }
 }
@@ -126,7 +132,8 @@ impl<E: TExprParser> Parser<E, StatementParser> {
 
     pub fn parse_block(&mut self) -> Result<Statement, ParserError> {
         self.statement_parser
-            .parse_bock_statement(&mut self.context, &mut self.expr_parser)
+            .parse_block(&mut self.context, &mut self.expr_parser)
+            .map(Statement::Block)
     }
 }
 
@@ -164,7 +171,7 @@ where
             }
             found => Err(ParserError::UnexpectedToken {
                 expected: "int or char",
-                found: found.to_owned().clone(),
+                found: found.clone(),
                 line: self.context.current().line(),
             }),
         }
@@ -180,24 +187,56 @@ where
         Ok(identifier)
     }
 
-    fn parse_function_definition(&mut self) -> Result<FunctionDefinition, ParserError> {
-        let return_type = self.parse_type()?;
+    fn parse_generic_function(
+        &mut self,
+        return_type: Type,
+    ) -> Result<GenericFunction, ParserError> {
         let name = self.parse_name()?;
         self.context.expect(TokenType::Lparen)?;
         let parameters = self.parse_vec_parameter()?;
         self.context.expect(TokenType::Rparen)?;
-        if let Statement::Block(body) = self
+        let body = self
             .statement_parser
-            .parse_statement(&mut self.context, &mut self.expr_parser)?
-        {
-            return Ok(FunctionDefinition {
-                return_type,
-                name,
-                parameters,
-                body,
-            });
+            .parse_block(&mut self.context, &mut self.expr_parser)?;
+
+        Ok(GenericFunction {
+            return_type,
+            name,
+            parameters,
+            body,
+        })
+    }
+
+    fn parse_main_function(&mut self, return_type: Type) -> Result<MainFunction, ParserError> {
+        if return_type != Type::Int {
+            return Err(ParserError::InvalidMainReturnType { found: return_type });
         }
-        Err(ParserError::ExpectedBlock)
+
+        self.context.expect(TokenType::Main)?;
+        self.context.expect(TokenType::Lparen)?;
+        self.context.expect(TokenType::Rparen)?;
+        let body = self
+            .statement_parser
+            .parse_block(&mut self.context, &mut self.expr_parser)?;
+
+        Ok(MainFunction { body })
+    }
+
+    fn parse_function_definition(&mut self) -> Result<Function, ParserError> {
+        let return_type = self.parse_type()?;
+        let function_name = self.context.current().token_type().clone();
+
+        match function_name {
+            TokenType::Id(_) => self
+                .parse_generic_function(return_type)
+                .map(Function::Generic),
+            TokenType::Main => self.parse_main_function(return_type).map(Function::Main),
+            found => Err(ParserError::UnexpectedToken {
+                expected: "function name or 'main'",
+                found,
+                line: self.context.current().line(),
+            }),
+        }
     }
 
     fn parse_parameter(&mut self) -> Result<Parameter, ParserError> {
@@ -218,8 +257,21 @@ where
     }
 
     pub fn parse_program(&mut self) -> Result<Program, ParserError> {
-        Ok(Program {
-            functions: vec![self.parse_function_definition()?],
-        })
+        let mut functions = Vec::new();
+
+        loop {
+            match self.parse_function_definition()? {
+                Function::Generic(function) => functions.push(function),
+                Function::Main(main) => {
+                    self.context.expect(TokenType::Eof)?;
+                    return Ok(Program { functions, main });
+                }
+            }
+        }
     }
+}
+
+enum Function {
+    Generic(GenericFunction),
+    Main(MainFunction),
 }
