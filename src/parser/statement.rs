@@ -275,7 +275,9 @@ impl StatementParser {
         context: &mut ParserContext,
         expr_parser: &mut E,
     ) -> Result<Statement, ParserError> {
-        Ok(Statement::Block(self.parse_block_inner(context, expr_parser)?))
+        Ok(Statement::Block(
+            self.parse_block_inner(context, expr_parser)?,
+        ))
     }
 
     fn parse_for<E: TExprParser>(
