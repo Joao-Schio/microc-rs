@@ -1,6 +1,6 @@
 use crate::{
     ast::statement::{
-        Assignment, AssignmentTarget, Block, DataType, PrintContent, Statement, VariableDeclaration,
+        Assignment, Block, DataType, LValue, PrintContent, Statement, VariableDeclaration,
     },
     token::TokenType,
 };
@@ -19,11 +19,11 @@ pub trait TStatementParser<E: TExprParser> {
 pub struct StatementParser;
 
 impl StatementParser {
-    fn parse_assignment_target<E: TExprParser>(
+    fn parse_lvalue<E: TExprParser>(
         &mut self,
         context: &mut ParserContext,
         expr_parser: &mut E,
-    ) -> Result<AssignmentTarget, ParserError> {
+    ) -> Result<LValue, ParserError> {
         let token = context.expect_matching("Id", |found| matches!(found, TokenType::Id(_)))?;
 
         let TokenType::Id(identifier) = token.into_type() else {
@@ -35,12 +35,12 @@ impl StatementParser {
                 context.advance();
                 let expr = expr_parser.parse_expression(context)?;
                 context.expect(TokenType::RBracket)?;
-                Ok(AssignmentTarget::ArrayElement {
+                Ok(LValue::ArrayElement {
                     array: identifier,
                     index: Box::new(expr),
                 })
             }
-            _ => Ok(AssignmentTarget::Identifier(identifier)),
+            _ => Ok(LValue::Identifier(identifier)),
         }
     }
 
@@ -48,12 +48,23 @@ impl StatementParser {
         &mut self,
         context: &mut ParserContext,
         expr_parser: &mut E,
-    ) -> Result<Statement, ParserError> {
-        let Assignment { target, value } = self.parse_assignment_inner(context, expr_parser)?;
+    ) -> Result<Assignment, ParserError> {
+        let target = self.parse_lvalue(context, expr_parser)?;
+        context.expect(TokenType::Assign)?;
+        let value = expr_parser.parse_expression(context)?;
 
+        Ok(Assignment { target, value })
+    }
+
+    fn parse_assignment_statement<E: TExprParser>(
+        &mut self,
+        context: &mut ParserContext,
+        expr_parser: &mut E,
+    ) -> Result<Statement, ParserError> {
+        let assignment = self.parse_assignment(context, expr_parser)?;
         context.expect(TokenType::SemiColon)?;
 
-        Ok(Statement::Assignment { target, value })
+        Ok(Statement::Assignment(assignment))
     }
 
     fn parse_return<E: TExprParser>(
@@ -238,18 +249,6 @@ impl StatementParser {
             statements,
         }))
     }
-    fn parse_assignment_inner<E: TExprParser>(
-        &mut self,
-        context: &mut ParserContext,
-        expr_parser: &mut E,
-    ) -> Result<Assignment, ParserError> {
-        let target = self.parse_assignment_target(context, expr_parser)?;
-        context.expect(TokenType::Assign)?;
-
-        let value = expr_parser.parse_expression(context)?;
-
-        Ok(Assignment { target, value })
-    }
 
     fn parse_for<E: TExprParser>(
         &mut self,
@@ -259,25 +258,26 @@ impl StatementParser {
         context.expect(TokenType::For)?;
         context.expect(TokenType::Lparen)?;
 
-        let assignment = self.parse_assignment_inner(context, expr_parser)?;
+        let initialization = self.parse_assignment(context, expr_parser)?;
         context.expect(TokenType::SemiColon)?;
 
         let condition = expr_parser.parse_expression(context)?;
         context.expect(TokenType::SemiColon)?;
 
-        let update = self.parse_assignment_inner(context, expr_parser)?;
+        let update = self.parse_assignment(context, expr_parser)?;
         context.expect(TokenType::Rparen)?;
 
         let body = Box::new(self.parse_statement(context, expr_parser)?);
 
         Ok(Statement::For {
-            assignment,
+            initialization,
             condition,
             update,
             body,
         })
     }
 }
+
 impl<E: TExprParser> TStatementParser<E> for StatementParser {
     fn parse_statement(
         &mut self,
@@ -285,7 +285,7 @@ impl<E: TExprParser> TStatementParser<E> for StatementParser {
         expr_parser: &mut E,
     ) -> Result<Statement, ParserError> {
         match context.current().token_type() {
-            TokenType::Id(_) => self.parse_assignment(context, expr_parser),
+            TokenType::Id(_) => self.parse_assignment_statement(context, expr_parser),
             TokenType::Return => self.parse_return(context, expr_parser),
             TokenType::Print => self.parse_print(context, expr_parser),
             TokenType::SemiColon => self.parse_empty(context),
