@@ -22,6 +22,7 @@ pub enum ParserError {
         found: TokenType,
         line: usize,
     },
+    ExpectedBlock,
     InvalidMainReturnType {
         found: Type,
     },
@@ -35,6 +36,7 @@ impl fmt::Display for ParserError {
                 found,
                 line,
             } => write!(f, "expected {expected}, found {found:?} at line {line}"),
+            Self::ExpectedBlock => write!(f, "expected a block"),
             Self::InvalidMainReturnType { found } => {
                 write!(f, "main must return int, found {found:?}")
             }
