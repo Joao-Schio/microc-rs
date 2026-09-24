@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         expression::{BinaryOp, Expression},
-        statement::{Assignment, AssignmentTarget, Statement},
+        statement::{Assignment, LValue, Statement},
     },
     token::{Token, TokenType},
 };
@@ -42,8 +42,8 @@ parser_contract!(
             assert_eq!(
                 parser.parse_statement(),
                 Ok(Statement::For {
-                    assignment: Assignment {
-                        target: AssignmentTarget::Identifier(b"i".to_vec()),
+                    initialization: Assignment {
+                        target: LValue::Identifier(b"i".to_vec()),
                         value: Expression::Integer(0),
                     },
                     condition: Expression::Binary {
@@ -52,7 +52,7 @@ parser_contract!(
                         right: Box::new(Expression::Integer(10)),
                     },
                     update: Assignment {
-                        target: AssignmentTarget::Identifier(b"i".to_vec()),
+                        target: LValue::Identifier(b"i".to_vec()),
                         value: Expression::Binary {
                             left: Box::new(Expression::Identifier(b"i".to_vec())),
                             op: BinaryOp::Add,
