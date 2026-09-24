@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         expression::Expression,
-        statement::{AssignmentTarget, Statement},
+        statement::{Assignment, LValue, Statement},
     },
     parser::ParserError,
     token::{Token, TokenType},
@@ -242,10 +242,10 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Assignment {
-                    target: AssignmentTarget::Identifier(b"y".to_vec()),
+                Ok(Statement::Assignment(Assignment {
+                    target: LValue::Identifier(b"y".to_vec()),
                     value: Expression::Integer(2),
-                })
+                }))
             );
         }
     }
