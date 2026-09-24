@@ -1,5 +1,5 @@
 use crate::{
-    ast::statement::{Block, DataType, Statement, VariableDeclaration},
+    ast::statement::{Block, Type, Statement, VariableDeclaration},
     parser::ParserError,
     token::{Token, TokenType},
 };
@@ -29,7 +29,7 @@ parser_contract!(
                 parser.parse_statement(),
                 Ok(Statement::Block(Block {
                     declarations: vec![VariableDeclaration::Array {
-                        data_type: DataType::Char,
+                        data_type: Type::Char,
                         name: b"buffer".to_vec(),
                         length: 32,
                     }],
@@ -68,16 +68,16 @@ parser_contract!(
                 Ok(Statement::Block(Block {
                     declarations: vec![
                         VariableDeclaration::Scalar {
-                            data_type: DataType::Int,
+                            data_type: Type::Int,
                             name: b"count".to_vec(),
                         },
                         VariableDeclaration::Array {
-                            data_type: DataType::Char,
+                            data_type: Type::Char,
                             name: b"buffer".to_vec(),
                             length: 8,
                         },
                         VariableDeclaration::Array {
-                            data_type: DataType::Int,
+                            data_type: Type::Int,
                             name: b"values".to_vec(),
                             length: 4,
                         },

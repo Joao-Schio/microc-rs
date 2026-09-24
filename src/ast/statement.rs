@@ -16,7 +16,7 @@ pub enum PrintContent {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum DataType {
+pub enum Type {
     Int,
     Char,
 }
@@ -24,11 +24,11 @@ pub enum DataType {
 #[derive(Debug, PartialEq, Eq)]
 pub enum VariableDeclaration {
     Scalar {
-        data_type: DataType,
+        data_type: Type,
         name: Vec<u8>,
     },
     Array {
-        data_type: DataType,
+        data_type: Type,
         name: Vec<u8>,
         length: i64,
     },

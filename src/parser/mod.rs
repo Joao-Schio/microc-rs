@@ -123,7 +123,7 @@ impl<E: TExprParser> Parser<E, StatementParser> {
 
     pub fn parse_block(&mut self) -> Result<Statement, ParserError> {
         self.statement_parser
-            .parse_block(&mut self.context, &mut self.expr_parser)
+            .parse_bock_statement(&mut self.context, &mut self.expr_parser)
     }
 }
 

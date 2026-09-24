@@ -1,6 +1,6 @@
 use crate::{
     ast::statement::{
-        Assignment, Block, DataType, LValue, PrintContent, Statement, VariableDeclaration,
+        Assignment, Block, Type, LValue, PrintContent, Statement, VariableDeclaration,
     },
     token::TokenType,
 };
@@ -143,7 +143,7 @@ impl StatementParser {
     fn parse_variable_declaration(
         &mut self,
         context: &mut ParserContext,
-        data_type: DataType,
+        data_type: Type,
     ) -> Result<VariableDeclaration, ParserError> {
         let token = context.expect_matching("Id", |found| matches!(found, TokenType::Id(_)))?;
 
@@ -199,11 +199,11 @@ impl StatementParser {
             match *context.current().token_type() {
                 TokenType::Char => {
                     context.expect(TokenType::Char)?;
-                    declarations.push(self.parse_variable_declaration(context, DataType::Char)?)
+                    declarations.push(self.parse_variable_declaration(context, Type::Char)?)
                 }
                 TokenType::Int => {
                     context.expect(TokenType::Int)?;
-                    declarations.push(self.parse_variable_declaration(context, DataType::Int)?)
+                    declarations.push(self.parse_variable_declaration(context, Type::Int)?)
                 }
                 _ => break,
             }
@@ -239,6 +239,21 @@ impl StatementParser {
         &mut self,
         context: &mut ParserContext,
         expr_parser: &mut E,
+    ) -> Result<Block, ParserError> {
+        context.expect(TokenType::LBrace)?;
+        let declarations = self.parse_declarations(context)?;
+        let statements = self.parse_statement_block(context, expr_parser)?;
+        context.expect(TokenType::RBrace)?;
+        Ok(Block {
+            declarations,
+            statements,
+        })
+    }
+
+    pub(super) fn parse_bock_statement<E: TExprParser>(
+        &mut self,
+        context: &mut ParserContext,
+        expr_parser: &mut E,
     ) -> Result<Statement, ParserError> {
         context.expect(TokenType::LBrace)?;
         let declarations = self.parse_declarations(context)?;
@@ -249,6 +264,8 @@ impl StatementParser {
             statements,
         }))
     }
+
+
 
     fn parse_for<E: TExprParser>(
         &mut self,
@@ -290,7 +307,7 @@ impl<E: TExprParser> TStatementParser<E> for StatementParser {
             TokenType::Print => self.parse_print(context, expr_parser),
             TokenType::SemiColon => self.parse_empty(context),
             TokenType::If => self.parse_if(context, expr_parser),
-            TokenType::LBrace => self.parse_block(context, expr_parser),
+            TokenType::LBrace => self.parse_bock_statement(context, expr_parser),
             TokenType::For => self.parse_for(context, expr_parser),
             found => {
                 let found = found.clone();

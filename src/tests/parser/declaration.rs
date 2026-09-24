@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         expression::Expression,
-        statement::{Assignment, Block, DataType, LValue, Statement, VariableDeclaration},
+        statement::{Assignment, Block, Type, LValue, Statement, VariableDeclaration},
     },
     parser::ParserError,
     token::{Token, TokenType},
@@ -29,7 +29,7 @@ parser_contract!(
                 parser.parse_statement(),
                 Ok(Statement::Block(Block {
                     declarations: vec![VariableDeclaration::Scalar {
-                        data_type: DataType::Int,
+                        data_type: Type::Int,
                         name: b"count".to_vec(),
                     }],
                     statements: vec![],
@@ -54,7 +54,7 @@ parser_contract!(
                 parser.parse_statement(),
                 Ok(Statement::Block(Block {
                     declarations: vec![VariableDeclaration::Scalar {
-                        data_type: DataType::Char,
+                        data_type: Type::Char,
                         name: b"letter".to_vec(),
                     }],
                     statements: vec![],
@@ -83,11 +83,11 @@ parser_contract!(
                 Ok(Statement::Block(Block {
                     declarations: vec![
                         VariableDeclaration::Scalar {
-                            data_type: DataType::Int,
+                            data_type: Type::Int,
                             name: b"count".to_vec(),
                         },
                         VariableDeclaration::Scalar {
-                            data_type: DataType::Char,
+                            data_type: Type::Char,
                             name: b"letter".to_vec(),
                         },
                     ],
@@ -117,7 +117,7 @@ parser_contract!(
                 parser.parse_statement(),
                 Ok(Statement::Block(Block {
                     declarations: vec![VariableDeclaration::Scalar {
-                        data_type: DataType::Int,
+                        data_type: Type::Int,
                         name: b"x".to_vec(),
                     }],
                     statements: vec![Statement::Assignment(Assignment {
@@ -192,7 +192,7 @@ parser_contract!(
                 parser.parse_statement(),
                 Ok(Statement::Block(Block {
                     declarations: vec![VariableDeclaration::Array {
-                        data_type: DataType::Int,
+                        data_type: Type::Int,
                         name: b"values".to_vec(),
                         length: 10,
                     }],
