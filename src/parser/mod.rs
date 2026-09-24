@@ -6,7 +6,8 @@ use std::{error::Error, fmt, iter::Peekable, vec::IntoIter};
 use crate::{
     ast::{
         expression::Expression,
-        statement::{Statement, VariableDeclaration},
+        program::{FunctionDefinition, Parameter, Program},
+        statement::{Statement, Type, VariableDeclaration},
     },
     token::{Token, TokenType},
 };
@@ -21,6 +22,7 @@ pub enum ParserError {
         found: TokenType,
         line: usize,
     },
+    ExpectedBlock,
 }
 
 impl fmt::Display for ParserError {
@@ -31,6 +33,7 @@ impl fmt::Display for ParserError {
                 found,
                 line,
             } => write!(f, "expected {expected}, found {found:?} at line {line}"),
+            Self::ExpectedBlock => write!(f, "expected a block"),
         }
     }
 }
@@ -147,5 +150,76 @@ where
     pub fn parse_statement(&mut self) -> Result<Statement, ParserError> {
         self.statement_parser
             .parse_statement(&mut self.context, &mut self.expr_parser)
+    }
+
+    fn parse_type(&mut self) -> Result<Type, ParserError> {
+        match self.context.current().token_type() {
+            TokenType::Int => {
+                self.context.expect(TokenType::Int)?;
+                Ok(Type::Int)
+            }
+            TokenType::Char => {
+                self.context.expect(TokenType::Char)?;
+                Ok(Type::Char)
+            }
+            found => Err(ParserError::UnexpectedToken {
+                expected: "int or char",
+                found: found.to_owned().clone(),
+                line: self.context.current().line(),
+            }),
+        }
+    }
+
+    fn parse_name(&mut self) -> Result<Vec<u8>, ParserError> {
+        let token = self
+            .context
+            .expect_matching("Id", |found| matches!(found, TokenType::Id(_)))?;
+        let TokenType::Id(identifier) = token.into_type() else {
+            unreachable!("identifier predicate must only accept TokenType::Id")
+        };
+        Ok(identifier)
+    }
+
+    fn parse_function_definition(&mut self) -> Result<FunctionDefinition, ParserError> {
+        let return_type = self.parse_type()?;
+        let name = self.parse_name()?;
+        self.context.expect(TokenType::Lparen)?;
+        let parameters = self.parse_vec_parameter()?;
+        self.context.expect(TokenType::Rparen)?;
+        if let Statement::Block(body) = self
+            .statement_parser
+            .parse_statement(&mut self.context, &mut self.expr_parser)?
+        {
+            return Ok(FunctionDefinition {
+                return_type,
+                name,
+                parameters,
+                body,
+            });
+        }
+        Err(ParserError::ExpectedBlock)
+    }
+
+    fn parse_parameter(&mut self) -> Result<Parameter, ParserError> {
+        let data_type = self.parse_type()?;
+        let name = self.parse_name()?;
+        Ok(Parameter { data_type, name })
+    }
+
+    fn parse_vec_parameter(&mut self) -> Result<Vec<Parameter>, ParserError> {
+        let mut parameters = Vec::new();
+        loop {
+            if *self.context.current().token_type() == TokenType::Rparen {
+                break;
+            }
+            parameters.push(self.parse_parameter()?);
+        }
+        Ok(parameters)
+    }
+
+    pub fn parse_program(&mut self) -> Result<Program, ParserError> {
+        Ok(Program {
+            functions: vec![self.parse_function_definition()?],
+        })
     }
 }
