@@ -41,6 +41,12 @@ pub struct Block {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct Assignment {
+    pub target: AssignmentTarget,
+    pub value: Expression,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum Statement {
     Assignment {
         target: AssignmentTarget,
@@ -58,5 +64,12 @@ pub enum Statement {
         else_branch: Option<Box<Statement>>,
     },
     Block(Block),
+    For {
+        assignment: Assignment,
+        condition: Expression,
+        update: Assignment,
+        body: Box<Statement>,
+    },
+
     Empty,
 }

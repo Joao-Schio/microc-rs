@@ -1,6 +1,6 @@
 use crate::{
     ast::statement::{
-        AssignmentTarget, Block, DataType, PrintContent, Statement, VariableDeclaration,
+        Assignment, AssignmentTarget, Block, DataType, PrintContent, Statement, VariableDeclaration,
     },
     token::TokenType,
 };
@@ -49,10 +49,10 @@ impl StatementParser {
         context: &mut ParserContext,
         expr_parser: &mut E,
     ) -> Result<Statement, ParserError> {
-        let target = self.parse_assignment_target(context, expr_parser)?;
-        context.expect(TokenType::Assign)?;
-        let value = expr_parser.parse_expression(context)?;
+        let Assignment { target, value } = self.parse_assignment_inner(context, expr_parser)?;
+
         context.expect(TokenType::SemiColon)?;
+
         Ok(Statement::Assignment { target, value })
     }
 
@@ -238,8 +238,46 @@ impl StatementParser {
             statements,
         }))
     }
-}
+    fn parse_assignment_inner<E: TExprParser>(
+        &mut self,
+        context: &mut ParserContext,
+        expr_parser: &mut E,
+    ) -> Result<Assignment, ParserError> {
+        let target = self.parse_assignment_target(context, expr_parser)?;
+        context.expect(TokenType::Assign)?;
 
+        let value = expr_parser.parse_expression(context)?;
+
+        Ok(Assignment { target, value })
+    }
+
+    fn parse_for<E: TExprParser>(
+        &mut self,
+        context: &mut ParserContext,
+        expr_parser: &mut E,
+    ) -> Result<Statement, ParserError> {
+        context.expect(TokenType::For)?;
+        context.expect(TokenType::Lparen)?;
+
+        let assignment = self.parse_assignment_inner(context, expr_parser)?;
+        context.expect(TokenType::SemiColon)?;
+
+        let condition = expr_parser.parse_expression(context)?;
+        context.expect(TokenType::SemiColon)?;
+
+        let update = self.parse_assignment_inner(context, expr_parser)?;
+        context.expect(TokenType::Rparen)?;
+
+        let body = Box::new(self.parse_statement(context, expr_parser)?);
+
+        Ok(Statement::For {
+            assignment,
+            condition,
+            update,
+            body,
+        })
+    }
+}
 impl<E: TExprParser> TStatementParser<E> for StatementParser {
     fn parse_statement(
         &mut self,
@@ -253,6 +291,7 @@ impl<E: TExprParser> TStatementParser<E> for StatementParser {
             TokenType::SemiColon => self.parse_empty(context),
             TokenType::If => self.parse_if(context, expr_parser),
             TokenType::LBrace => self.parse_block(context, expr_parser),
+            TokenType::For => self.parse_for(context, expr_parser),
             found => {
                 let found = found.clone();
                 let line = context.current().line();
