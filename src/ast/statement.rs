@@ -1,7 +1,7 @@
 use crate::ast::expression::Expression;
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum AssignmentTarget {
+pub enum LValue {
     Identifier(Vec<u8>),
     ArrayElement {
         array: Vec<u8>,
@@ -42,16 +42,13 @@ pub struct Block {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Assignment {
-    pub target: AssignmentTarget,
+    pub target: LValue,
     pub value: Expression,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Statement {
-    Assignment {
-        target: AssignmentTarget,
-        value: Expression,
-    },
+    Assignment(Assignment),
     Return {
         value: Option<Expression>,
     },
@@ -65,11 +62,10 @@ pub enum Statement {
     },
     Block(Block),
     For {
-        assignment: Assignment,
+        initialization: Assignment,
         condition: Expression,
         update: Assignment,
         body: Box<Statement>,
     },
-
     Empty,
 }
