@@ -182,10 +182,11 @@ where
         let token = self
             .context
             .expect_matching("Id", |found| matches!(found, TokenType::Id(_)))?;
+        let line = token.line();
         let TokenType::Id(identifier) = token.into_type() else {
             unreachable!("identifier predicate must only accept TokenType::Id")
         };
-        Ok(identifier.into())
+        Ok(Identifier::new(identifier, line))
     }
 
     fn parse_generic_function(
