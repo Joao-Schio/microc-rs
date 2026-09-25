@@ -54,7 +54,7 @@ parser_contract!(
                     declarations: vec![],
                     statements: vec![
                         Statement::Assignment(Assignment {
-                            target: LValue::Identifier(identifier!(b"x")),
+                            target: LValue::Identifier(identifier!(b"x", 2)),
                             value: Expression::Integer(10),
                         }),
                         Statement::Return {
