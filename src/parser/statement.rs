@@ -46,11 +46,12 @@ impl StatementParser {
         expr_parser: &mut E,
     ) -> Result<LValue, ParserError> {
         let token = context.expect_matching("Id", |found| matches!(found, TokenType::Id(_)))?;
+        let line = token.line();
 
         let TokenType::Id(identifier) = token.into_type() else {
             unreachable!("identifier predicate must only accept TokenType::Id")
         };
-        let identifier = Identifier::from(identifier);
+        let identifier = Identifier::new(identifier, line);
 
         match *context.current().token_type() {
             TokenType::LBracket => {
@@ -168,11 +169,12 @@ impl StatementParser {
         data_type: Type,
     ) -> Result<VariableDeclaration, ParserError> {
         let token = context.expect_matching("Id", |found| matches!(found, TokenType::Id(_)))?;
+        let line = token.line();
 
         let TokenType::Id(identifier) = token.into_type() else {
             unreachable!("identifier predicate must only accept TokenType::Id")
         };
-        let identifier = Identifier::from(identifier);
+        let identifier = Identifier::new(identifier, line);
 
         match context.current().token_type() {
             TokenType::LBracket => {
