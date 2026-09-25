@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         expression::Expression,
-        statement::{Assignment, Block, LValue, Statement},
+        statement::{Assignment, Block, LValue, StatementKind},
     },
     parser::ParserError,
     token::{Token, TokenType},
@@ -24,10 +24,13 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Block(Block {
-                    declarations: vec![],
-                    statements: vec![],
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Block(Block {
+                        declarations: vec![],
+                        statements: vec![],
+                    })
+                ))
             );
         }
 
@@ -50,18 +53,27 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Block(Block {
-                    declarations: vec![],
-                    statements: vec![
-                        Statement::Assignment(Assignment {
-                            target: LValue::Identifier(identifier!(b"x", 2)),
-                            value: Expression::Integer(10),
-                        }),
-                        Statement::Return {
-                            value: Some(Expression::Integer(0)),
-                        },
-                    ],
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Block(Block {
+                        declarations: vec![],
+                        statements: vec![
+                            statement!(
+                                2,
+                                StatementKind::Assignment(Assignment {
+                                    target: LValue::Identifier(identifier!(b"x", 2)),
+                                    value: Expression::Integer(10),
+                                })
+                            ),
+                            statement!(
+                                3,
+                                StatementKind::Return {
+                                    value: Some(Expression::Integer(0)),
+                                }
+                            ),
+                        ],
+                    })
+                ))
             );
         }
 
@@ -82,15 +94,24 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Block(Block {
-                    declarations: vec![],
-                    statements: vec![Statement::Block(Block {
+                Ok(statement!(
+                    1,
+                    StatementKind::Block(Block {
                         declarations: vec![],
-                        statements: vec![Statement::Return {
-                            value: Some(Expression::Integer(1)),
-                        }],
-                    })],
-                }))
+                        statements: vec![statement!(
+                            2,
+                            StatementKind::Block(Block {
+                                declarations: vec![],
+                                statements: vec![statement!(
+                                    3,
+                                    StatementKind::Return {
+                                        value: Some(Expression::Integer(1)),
+                                    }
+                                )],
+                            })
+                        )],
+                    })
+                ))
             );
         }
 
@@ -109,16 +130,22 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Block(Block {
-                    declarations: vec![],
-                    statements: vec![],
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Block(Block {
+                        declarations: vec![],
+                        statements: vec![],
+                    })
+                ))
             );
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Return {
-                    value: Some(Expression::Integer(1)),
-                })
+                Ok(statement!(
+                    2,
+                    StatementKind::Return {
+                        value: Some(Expression::Integer(1)),
+                    }
+                ))
             );
         }
 
@@ -147,21 +174,36 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::If {
-                    condition: Expression::Integer(1),
-                    then_branch: Box::new(Statement::Block(Block {
-                        declarations: vec![],
-                        statements: vec![Statement::Return {
-                            value: Some(Expression::Integer(1)),
-                        }],
-                    })),
-                    else_branch: Some(Box::new(Statement::Block(Block {
-                        declarations: vec![],
-                        statements: vec![Statement::Return {
-                            value: Some(Expression::Integer(0)),
-                        }],
-                    }))),
-                })
+                Ok(statement!(
+                    1,
+                    StatementKind::If {
+                        condition: Expression::Integer(1),
+                        then_branch: Box::new(statement!(
+                            1,
+                            StatementKind::Block(Block {
+                                declarations: vec![],
+                                statements: vec![statement!(
+                                    2,
+                                    StatementKind::Return {
+                                        value: Some(Expression::Integer(1)),
+                                    }
+                                )],
+                            })
+                        )),
+                        else_branch: Some(Box::new(statement!(
+                            3,
+                            StatementKind::Block(Block {
+                                declarations: vec![],
+                                statements: vec![statement!(
+                                    4,
+                                    StatementKind::Return {
+                                        value: Some(Expression::Integer(0)),
+                                    }
+                                )],
+                            })
+                        ))),
+                    }
+                ))
             );
         }
 

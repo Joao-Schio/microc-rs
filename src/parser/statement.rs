@@ -2,7 +2,8 @@ use crate::{
     ast::{
         Identifier,
         statement::{
-            Assignment, Block, LValue, PrintContent, Statement, Type, VariableDeclaration,
+            Assignment, Block, LValue, PrintContent, Statement, StatementKind, Type,
+            VariableDeclaration,
         },
     },
     token::TokenType,
@@ -31,8 +32,8 @@ pub trait TStatementParser<E: TExprParser> {
             });
         }
 
-        match self.parse_statement(context, expr_parser)? {
-            Statement::Block(block) => Ok(block),
+        match self.parse_statement(context, expr_parser)?.kind {
+            StatementKind::Block(block) => Ok(block),
             _ => Err(ParserError::ExpectedBlock),
         }
     }
@@ -85,18 +86,18 @@ impl StatementParser {
         &mut self,
         context: &mut ParserContext,
         expr_parser: &mut E,
-    ) -> Result<Statement, ParserError> {
+    ) -> Result<StatementKind, ParserError> {
         let assignment = self.parse_assignment(context, expr_parser)?;
         context.expect(TokenType::SemiColon)?;
 
-        Ok(Statement::Assignment(assignment))
+        Ok(StatementKind::Assignment(assignment))
     }
 
     fn parse_return<E: TExprParser>(
         &mut self,
         context: &mut ParserContext,
         expr_parser: &mut E,
-    ) -> Result<Statement, ParserError> {
+    ) -> Result<StatementKind, ParserError> {
         context.expect(TokenType::Return)?;
 
         let value = match *context.current().token_type() {
@@ -104,14 +105,14 @@ impl StatementParser {
             _ => Some(expr_parser.parse_expression(context)?),
         };
         context.expect(TokenType::SemiColon)?;
-        Ok(Statement::Return { value })
+        Ok(StatementKind::Return { value })
     }
 
     fn parse_print<E: TExprParser>(
         &mut self,
         context: &mut ParserContext,
         expr_parser: &mut E,
-    ) -> Result<Statement, ParserError> {
+    ) -> Result<StatementKind, ParserError> {
         context.expect(TokenType::Print)?;
         context.expect(TokenType::Lparen)?;
 
@@ -133,19 +134,19 @@ impl StatementParser {
 
         context.expect(TokenType::Rparen)?;
         context.expect(TokenType::SemiColon)?;
-        Ok(Statement::Print { content })
+        Ok(StatementKind::Print { content })
     }
 
-    fn parse_empty(&mut self, context: &mut ParserContext) -> Result<Statement, ParserError> {
+    fn parse_empty(&mut self, context: &mut ParserContext) -> Result<StatementKind, ParserError> {
         context.expect(TokenType::SemiColon)?;
-        Ok(Statement::Empty)
+        Ok(StatementKind::Empty)
     }
 
     fn parse_if<E: TExprParser>(
         &mut self,
         context: &mut ParserContext,
         expr_parser: &mut E,
-    ) -> Result<Statement, ParserError> {
+    ) -> Result<StatementKind, ParserError> {
         context.expect(TokenType::If)?;
         context.expect(TokenType::Lparen)?;
         let condition = expr_parser.parse_expression(context)?;
@@ -158,7 +159,7 @@ impl StatementParser {
             }
             _ => None,
         };
-        Ok(Statement::If {
+        Ok(StatementKind::If {
             condition,
             then_branch,
             else_branch,
@@ -281,8 +282,8 @@ impl StatementParser {
         &mut self,
         context: &mut ParserContext,
         expr_parser: &mut E,
-    ) -> Result<Statement, ParserError> {
-        Ok(Statement::Block(
+    ) -> Result<StatementKind, ParserError> {
+        Ok(StatementKind::Block(
             self.parse_block_inner(context, expr_parser)?,
         ))
     }
@@ -291,7 +292,7 @@ impl StatementParser {
         &mut self,
         context: &mut ParserContext,
         expr_parser: &mut E,
-    ) -> Result<Statement, ParserError> {
+    ) -> Result<StatementKind, ParserError> {
         context.expect(TokenType::For)?;
         context.expect(TokenType::Lparen)?;
 
@@ -306,7 +307,7 @@ impl StatementParser {
 
         let body = Box::new(self.parse_statement(context, expr_parser)?);
 
-        Ok(Statement::For {
+        Ok(StatementKind::For {
             initialization,
             condition,
             update,
@@ -321,7 +322,9 @@ impl<E: TExprParser> TStatementParser<E> for StatementParser {
         context: &mut ParserContext,
         expr_parser: &mut E,
     ) -> Result<Statement, ParserError> {
-        match context.current().token_type() {
+        let line = context.current().line();
+
+        let kind = match context.current().token_type() {
             TokenType::Id(_) => self.parse_assignment_statement(context, expr_parser),
             TokenType::Return => self.parse_return(context, expr_parser),
             TokenType::Print => self.parse_print(context, expr_parser),
@@ -329,16 +332,14 @@ impl<E: TExprParser> TStatementParser<E> for StatementParser {
             TokenType::If => self.parse_if(context, expr_parser),
             TokenType::LBrace => self.parse_block_statement(context, expr_parser),
             TokenType::For => self.parse_for(context, expr_parser),
-            found => {
-                let found = found.clone();
-                let line = context.current().line();
-                Err(ParserError::UnexpectedToken {
-                    expected: "statement",
-                    found,
-                    line,
-                })
-            }
-        }
+            found => Err(ParserError::UnexpectedToken {
+                expected: "statement",
+                found: found.clone(),
+                line,
+            }),
+        }?;
+
+        Ok(Statement::new(line, kind))
     }
 
     fn parse_block(

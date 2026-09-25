@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         expression::{BinaryOp, Expression},
-        statement::{Assignment, LValue, PrintContent, Statement},
+        statement::{Assignment, LValue, PrintContent, Statement, StatementKind},
     },
     parser::{ExprParser, Parser, ParserContext, ParserError, TExprParser, TStatementParser},
     token::{Token, TokenType},
@@ -26,10 +26,13 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Assignment(Assignment {
-                    target: LValue::Identifier(identifier!(b"x")),
-                    value: Expression::Integer(42),
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Assignment(Assignment {
+                        target: LValue::Identifier(identifier!(b"x")),
+                        value: Expression::Integer(42),
+                    })
+                ))
             );
         }
 
@@ -52,17 +55,20 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Assignment(Assignment {
-                    target: LValue::ArrayElement {
-                        array: identifier!(b"values"),
-                        index: Box::new(Expression::Binary {
-                            left: Box::new(Expression::Identifier(identifier!(b"i"))),
-                            op: BinaryOp::Add,
-                            right: Box::new(Expression::Integer(1)),
-                        }),
-                    },
-                    value: Expression::Integer(42),
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Assignment(Assignment {
+                        target: LValue::ArrayElement {
+                            array: identifier!(b"values"),
+                            index: Box::new(Expression::Binary {
+                                left: Box::new(Expression::Identifier(identifier!(b"i"))),
+                                op: BinaryOp::Add,
+                                right: Box::new(Expression::Integer(1)),
+                            }),
+                        },
+                        value: Expression::Integer(42),
+                    })
+                ))
             );
         }
 
@@ -143,7 +149,7 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Return { value: None })
+                Ok(statement!(1, StatementKind::Return { value: None }))
             );
         }
 
@@ -160,9 +166,12 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Return {
-                    value: Some(Expression::Integer(42)),
-                })
+                Ok(statement!(
+                    1,
+                    StatementKind::Return {
+                        value: Some(Expression::Integer(42)),
+                    }
+                ))
             );
         }
 
@@ -184,16 +193,19 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Return {
-                    value: Some(Expression::Binary {
-                        left: Box::new(Expression::Identifier(identifier!(b"x"))),
-                        op: BinaryOp::Add,
-                        right: Box::new(Expression::Call {
-                            callee: identifier!(b"foo"),
-                            arguments: vec![Expression::Integer(1)],
+                Ok(statement!(
+                    1,
+                    StatementKind::Return {
+                        value: Some(Expression::Binary {
+                            left: Box::new(Expression::Identifier(identifier!(b"x"))),
+                            op: BinaryOp::Add,
+                            right: Box::new(Expression::Call {
+                                callee: identifier!(b"foo"),
+                                arguments: vec![Expression::Integer(1)],
+                            }),
                         }),
-                    }),
-                })
+                    }
+                ))
             );
         }
 
@@ -234,16 +246,22 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Assignment(Assignment {
-                    target: LValue::Identifier(identifier!(b"x")),
-                    value: Expression::Integer(1),
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Assignment(Assignment {
+                        target: LValue::Identifier(identifier!(b"x")),
+                        value: Expression::Integer(1),
+                    })
+                ))
             );
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Return {
-                    value: Some(Expression::Identifier(identifier!(b"x", 2))),
-                })
+                Ok(statement!(
+                    2,
+                    StatementKind::Return {
+                        value: Some(Expression::Identifier(identifier!(b"x", 2))),
+                    }
+                ))
             );
         }
 
@@ -281,9 +299,12 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Print {
-                    content: PrintContent::StringConst(b"hello".to_vec()),
-                })
+                Ok(statement!(
+                    1,
+                    StatementKind::Print {
+                        content: PrintContent::StringConst(b"hello".to_vec()),
+                    }
+                ))
             );
         }
 
@@ -304,13 +325,16 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Print {
-                    content: PrintContent::Expression(Expression::Binary {
-                        left: Box::new(Expression::Identifier(identifier!(b"a"))),
-                        op: BinaryOp::Add,
-                        right: Box::new(Expression::Identifier(identifier!(b"b"))),
-                    }),
-                })
+                Ok(statement!(
+                    1,
+                    StatementKind::Print {
+                        content: PrintContent::Expression(Expression::Binary {
+                            left: Box::new(Expression::Identifier(identifier!(b"a"))),
+                            op: BinaryOp::Add,
+                            right: Box::new(Expression::Identifier(identifier!(b"b"))),
+                        }),
+                    }
+                ))
             );
         }
 
@@ -389,7 +413,10 @@ parser_contract!(
 
             let mut parser = make_parser(tokens);
 
-            assert_eq!(parser.parse_statement(), Ok(Statement::Empty));
+            assert_eq!(
+                parser.parse_statement(),
+                Ok(statement!(1, StatementKind::Empty))
+            );
         }
 
         #[test]
@@ -405,14 +432,20 @@ parser_contract!(
 
             let mut parser = make_parser(tokens);
 
-            assert_eq!(parser.parse_statement(), Ok(Statement::Empty));
+            assert_eq!(
+                parser.parse_statement(),
+                Ok(statement!(1, StatementKind::Empty))
+            );
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Assignment(Assignment {
-                    target: LValue::Identifier(identifier!(b"x", 2)),
-                    value: Expression::Integer(42),
-                }))
+                Ok(statement!(
+                    2,
+                    StatementKind::Assignment(Assignment {
+                        target: LValue::Identifier(identifier!(b"x", 2)),
+                        value: Expression::Integer(42),
+                    })
+                ))
             );
         }
     }
@@ -423,10 +456,10 @@ struct StubStatementParser;
 impl<E: TExprParser> TStatementParser<E> for StubStatementParser {
     fn parse_statement(
         &mut self,
-        _context: &mut ParserContext,
+        context: &mut ParserContext,
         _expr_parser: &mut E,
     ) -> Result<Statement, ParserError> {
-        Ok(Statement::Empty)
+        Ok(Statement::new(context.current().line(), StatementKind::Empty))
     }
 }
 
@@ -435,5 +468,8 @@ fn parser_uses_injected_statement_parser() {
     let tokens = vec![Token::new(TokenType::Eof, 1)];
     let mut parser = Parser::with_parsers(tokens, ExprParser, StubStatementParser);
 
-    assert_eq!(parser.parse_statement(), Ok(Statement::Empty));
+    assert_eq!(
+        parser.parse_statement(),
+        Ok(statement!(1, StatementKind::Empty))
+    );
 }

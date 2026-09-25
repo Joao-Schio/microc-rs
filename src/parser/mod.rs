@@ -8,7 +8,7 @@ use crate::{
         Identifier,
         expression::Expression,
         program::{GenericFunction, MainFunction, Parameter, Program},
-        statement::{Statement, Type, VariableDeclaration},
+        statement::{Statement, StatementKind, Type, VariableDeclaration},
     },
     token::{Token, TokenType},
 };
@@ -132,9 +132,10 @@ impl<E: TExprParser> Parser<E, StatementParser> {
     }
 
     pub fn parse_block(&mut self) -> Result<Statement, ParserError> {
+        let line = self.context.current().line();
         self.statement_parser
             .parse_block(&mut self.context, &mut self.expr_parser)
-            .map(Statement::Block)
+            .map(|block| Statement::new(line, StatementKind::Block(block)))
     }
 }
 

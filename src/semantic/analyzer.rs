@@ -3,7 +3,7 @@ use std::{collections::HashMap, mem};
 use crate::{
     ast::{
         program::Parameter,
-        statement::{LValue, VariableDeclaration},
+        statement::{LValue, StatementKind, VariableDeclaration},
     },
     semantic::TSemanticAnalyzer,
 };
@@ -95,24 +95,25 @@ impl<'a> TSemanticAnalyzer<'a> for SemanticAnalyzer<'a> {
         &mut self,
         program: &'a crate::ast::program::Program,
     ) -> Result<(), super::SemanticError> {
-        for i in &program.main.body.declarations {
-            match i {
-                VariableDeclaration::Scalar { data_type, name } => {
-                    self.context.declare(&name.name, Symbol::Variable(i));
+        for declaration in &program.main.body.declarations {
+            match declaration {
+                VariableDeclaration::Scalar { name, .. } => {
+                    self.context
+                        .declare(&name.name, Symbol::Variable(declaration));
                 }
                 _ => todo!(),
             }
         }
 
-        for i in &program.main.body.statements {
-            match i {
-                crate::ast::statement::Statement::Assignment(assignment) => {
+        for statement in &program.main.body.statements {
+            match &statement.kind {
+                StatementKind::Assignment(assignment) => {
                     if let LValue::Identifier(ref id) = assignment.target {
                         match self.context.resolve(&id.name) {
                             None => {
                                 return Err(super::SemanticError::UndeclaredVariable {
                                     name: id.name.to_owned(),
-                                    line: 2,
+                                    line: statement.line(),
                                 });
                             }
                             Some(_) => continue,
@@ -134,9 +135,11 @@ mod tests {
         ast::{
             Identifier,
             program::{Parameter, Program},
-            statement::{Assignment, Block, LValue, Statement, Type, VariableDeclaration},
+            statement::{
+                Assignment, Block, LValue, Statement, StatementKind, Type, VariableDeclaration,
+            },
         },
-        semantic::{TSemanticAnalyzer, analyzer},
+        semantic::TSemanticAnalyzer,
     };
 
     fn parameter(name: &[u8]) -> Parameter {
@@ -221,13 +224,16 @@ mod tests {
                             line: 1,
                         },
                     }],
-                    statements: vec![Statement::Assignment(Assignment {
-                        target: LValue::Identifier(Identifier {
-                            name: b"x".to_vec(),
-                            line: 1,
+                    statements: vec![Statement::new(
+                        1,
+                        StatementKind::Assignment(Assignment {
+                            target: LValue::Identifier(Identifier {
+                                name: b"x".to_vec(),
+                                line: 1,
+                            }),
+                            value: crate::ast::expression::Expression::Integer(20),
                         }),
-                        value: crate::ast::expression::Expression::Integer(20),
-                    })],
+                    )],
                 },
             },
         };
