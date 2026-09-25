@@ -27,7 +27,7 @@ parser_contract!(
             assert_eq!(
                 parser.parse_statement(),
                 Ok(Statement::Assignment(Assignment {
-                    target: LValue::Identifier(b"x".to_vec()),
+                    target: LValue::Identifier(identifier!(b"x")),
                     value: Expression::Integer(42),
                 }))
             );
@@ -54,9 +54,9 @@ parser_contract!(
                 parser.parse_statement(),
                 Ok(Statement::Assignment(Assignment {
                     target: LValue::ArrayElement {
-                        array: b"values".to_vec(),
+                        array: identifier!(b"values"),
                         index: Box::new(Expression::Binary {
-                            left: Box::new(Expression::Identifier(b"i".to_vec())),
+                            left: Box::new(Expression::Identifier(identifier!(b"i"))),
                             op: BinaryOp::Add,
                             right: Box::new(Expression::Integer(1)),
                         }),
@@ -186,10 +186,10 @@ parser_contract!(
                 parser.parse_statement(),
                 Ok(Statement::Return {
                     value: Some(Expression::Binary {
-                        left: Box::new(Expression::Identifier(b"x".to_vec())),
+                        left: Box::new(Expression::Identifier(identifier!(b"x"))),
                         op: BinaryOp::Add,
                         right: Box::new(Expression::Call {
-                            callee: b"foo".to_vec(),
+                            callee: identifier!(b"foo"),
                             arguments: vec![Expression::Integer(1)],
                         }),
                     }),
@@ -235,14 +235,14 @@ parser_contract!(
             assert_eq!(
                 parser.parse_statement(),
                 Ok(Statement::Assignment(Assignment {
-                    target: LValue::Identifier(b"x".to_vec()),
+                    target: LValue::Identifier(identifier!(b"x")),
                     value: Expression::Integer(1),
                 }))
             );
             assert_eq!(
                 parser.parse_statement(),
                 Ok(Statement::Return {
-                    value: Some(Expression::Identifier(b"x".to_vec())),
+                    value: Some(Expression::Identifier(identifier!(b"x", 2))),
                 })
             );
         }
@@ -306,9 +306,9 @@ parser_contract!(
                 parser.parse_statement(),
                 Ok(Statement::Print {
                     content: PrintContent::Expression(Expression::Binary {
-                        left: Box::new(Expression::Identifier(b"a".to_vec())),
+                        left: Box::new(Expression::Identifier(identifier!(b"a"))),
                         op: BinaryOp::Add,
-                        right: Box::new(Expression::Identifier(b"b".to_vec())),
+                        right: Box::new(Expression::Identifier(identifier!(b"b"))),
                     }),
                 })
             );
@@ -410,7 +410,7 @@ parser_contract!(
             assert_eq!(
                 parser.parse_statement(),
                 Ok(Statement::Assignment(Assignment {
-                    target: LValue::Identifier(b"x".to_vec()),
+                    target: LValue::Identifier(identifier!(b"x", 2)),
                     value: Expression::Integer(42),
                 }))
             );

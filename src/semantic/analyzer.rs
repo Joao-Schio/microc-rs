@@ -87,12 +87,12 @@ impl Default for SemanticAnalyzer<'_> {
 #[cfg(test)]
 mod tests {
     use super::{Context, SemanticAnalyzer, Symbol};
-    use crate::ast::{program::Parameter, statement::Type};
+    use crate::ast::{Identifier, program::Parameter, statement::Type};
 
     fn parameter(name: &[u8]) -> Parameter {
         Parameter {
             data_type: Type::Int,
-            name: name.to_vec(),
+            name: Identifier::new(name.to_vec(), 1),
         }
     }
 
@@ -100,7 +100,7 @@ mod tests {
     fn resolves_symbol_from_current_context() {
         let parameter = parameter(b"value");
         let mut context = Context::new();
-        context.declare(parameter.name.as_slice(), Symbol::Parameter(&parameter));
+        context.declare(parameter.name.as_bytes(), Symbol::Parameter(&parameter));
 
         match context.resolve(b"value") {
             Some(Symbol::Parameter(found)) => assert!(std::ptr::eq(*found, &parameter)),
@@ -112,7 +112,7 @@ mod tests {
     fn resolves_symbol_from_parent_context() {
         let parameter = parameter(b"value");
         let mut parent = Context::new();
-        parent.declare(parameter.name.as_slice(), Symbol::Parameter(&parameter));
+        parent.declare(parameter.name.as_bytes(), Symbol::Parameter(&parameter));
         let context = Context::with_parent(parent);
 
         match context.resolve(b"value") {
@@ -126,9 +126,9 @@ mod tests {
         let outer = parameter(b"value");
         let inner = parameter(b"value");
         let mut parent = Context::new();
-        parent.declare(outer.name.as_slice(), Symbol::Parameter(&outer));
+        parent.declare(outer.name.as_bytes(), Symbol::Parameter(&outer));
         let mut context = Context::with_parent(parent);
-        context.declare(inner.name.as_slice(), Symbol::Parameter(&inner));
+        context.declare(inner.name.as_bytes(), Symbol::Parameter(&inner));
 
         match context.resolve(b"value") {
             Some(Symbol::Parameter(found)) => assert!(std::ptr::eq(*found, &inner)),
@@ -143,12 +143,12 @@ mod tests {
         let mut analyzer = SemanticAnalyzer::new();
         analyzer
             .context
-            .declare(outer.name.as_slice(), Symbol::Parameter(&outer));
+            .declare(outer.name.as_bytes(), Symbol::Parameter(&outer));
 
         analyzer.enter_scope();
         analyzer
             .context
-            .declare(inner.name.as_slice(), Symbol::Parameter(&inner));
+            .declare(inner.name.as_bytes(), Symbol::Parameter(&inner));
 
         assert!(analyzer.context.resolve(b"outer").is_some());
         assert!(analyzer.context.resolve(b"inner").is_some());

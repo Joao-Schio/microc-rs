@@ -1,4 +1,7 @@
-use crate::ast::statement::{Block, Type};
+use crate::ast::{
+    Identifier,
+    statement::{Block, Type},
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Program {
@@ -9,7 +12,7 @@ pub struct Program {
 #[derive(Debug, PartialEq, Eq)]
 pub struct GenericFunction {
     pub return_type: Type,
-    pub name: Vec<u8>,
+    pub name: Identifier,
     pub parameters: Vec<Parameter>,
     pub body: Block,
 }
@@ -22,5 +25,5 @@ pub struct MainFunction {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Parameter {
     pub data_type: Type,
-    pub name: Vec<u8>,
+    pub name: Identifier,
 }

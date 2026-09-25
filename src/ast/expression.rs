@@ -1,3 +1,5 @@
+use crate::ast::Identifier;
+
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum UnaryOp {
     Not,
@@ -27,7 +29,7 @@ pub enum BinaryOp {
 pub enum Expression {
     Integer(i64),
     Char(u8),
-    Identifier(Vec<u8>),
+    Identifier(Identifier),
     Unary {
         op: UnaryOp,
         expression: Box<Expression>,
@@ -38,11 +40,11 @@ pub enum Expression {
         right: Box<Expression>,
     },
     ArrayAccess {
-        array: Vec<u8>,
+        array: Identifier,
         index: Box<Expression>,
     },
     Call {
-        callee: Vec<u8>,
+        callee: Identifier,
         arguments: Vec<Expression>,
     },
 }

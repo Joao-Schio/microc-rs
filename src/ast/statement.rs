@@ -1,10 +1,10 @@
-use crate::ast::expression::Expression;
+use crate::ast::{Identifier, expression::Expression};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LValue {
-    Identifier(Vec<u8>),
+    Identifier(Identifier),
     ArrayElement {
-        array: Vec<u8>,
+        array: Identifier,
         index: Box<Expression>,
     },
 }
@@ -25,11 +25,11 @@ pub enum Type {
 pub enum VariableDeclaration {
     Scalar {
         data_type: Type,
-        name: Vec<u8>,
+        name: Identifier,
     },
     Array {
         data_type: Type,
-        name: Vec<u8>,
+        name: Identifier,
         length: i64,
     },
 }

@@ -43,18 +43,18 @@ parser_contract!(
                 parser.parse_statement(),
                 Ok(Statement::For {
                     initialization: Assignment {
-                        target: LValue::Identifier(b"i".to_vec()),
+                        target: LValue::Identifier(identifier!(b"i")),
                         value: Expression::Integer(0),
                     },
                     condition: Expression::Binary {
-                        left: Box::new(Expression::Identifier(b"i".to_vec())),
+                        left: Box::new(Expression::Identifier(identifier!(b"i"))),
                         op: BinaryOp::Less,
                         right: Box::new(Expression::Integer(10)),
                     },
                     update: Assignment {
-                        target: LValue::Identifier(b"i".to_vec()),
+                        target: LValue::Identifier(identifier!(b"i")),
                         value: Expression::Binary {
-                            left: Box::new(Expression::Identifier(b"i".to_vec())),
+                            left: Box::new(Expression::Identifier(identifier!(b"i"))),
                             op: BinaryOp::Add,
                             right: Box::new(Expression::Integer(1)),
                         },
@@ -97,18 +97,18 @@ parser_contract!(
                 parser.parse_statement(),
                 Ok(Statement::For {
                     initialization: Assignment {
-                        target: LValue::Identifier(b"i".to_vec()),
+                        target: LValue::Identifier(identifier!(b"i")),
                         value: Expression::Integer(0),
                     },
                     condition: Expression::Binary {
-                        left: Box::new(Expression::Identifier(b"i".to_vec())),
+                        left: Box::new(Expression::Identifier(identifier!(b"i"))),
                         op: BinaryOp::Less,
                         right: Box::new(Expression::Integer(10)),
                     },
                     update: Assignment {
-                        target: LValue::Identifier(b"i".to_vec()),
+                        target: LValue::Identifier(identifier!(b"i")),
                         value: Expression::Binary {
-                            left: Box::new(Expression::Identifier(b"i".to_vec())),
+                            left: Box::new(Expression::Identifier(identifier!(b"i"))),
                             op: BinaryOp::Add,
                             right: Box::new(Expression::Integer(1)),
                         },
@@ -116,7 +116,7 @@ parser_contract!(
                     body: Box::new(Statement::Block(Block {
                         declarations: vec![],
                         statements: vec![Statement::Return {
-                            value: Some(Expression::Identifier(b"i".to_vec())),
+                            value: Some(Expression::Identifier(identifier!(b"i", 2))),
                         },],
                     })),
                 })
