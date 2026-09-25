@@ -148,7 +148,7 @@ parser_contract!(
                 Ok(Statement::If {
                     condition: Expression::Identifier(identifier!(b"a")),
                     then_branch: Box::new(Statement::If {
-                        condition: Expression::Identifier(identifier!(b"b")),
+                        condition: Expression::Identifier(identifier!(b"b", 2)),
                         then_branch: Box::new(Statement::Return {
                             value: Some(Expression::Integer(1)),
                         }),
@@ -243,7 +243,7 @@ parser_contract!(
             assert_eq!(
                 parser.parse_statement(),
                 Ok(Statement::Assignment(Assignment {
-                    target: LValue::Identifier(identifier!(b"y")),
+                    target: LValue::Identifier(identifier!(b"y", 2)),
                     value: Expression::Integer(2),
                 }))
             );
