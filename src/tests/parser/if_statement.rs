@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         expression::Expression,
-        statement::{Assignment, LValue, Statement},
+        statement::{Assignment, LValue, StatementKind},
     },
     parser::ParserError,
     token::{Token, TokenType},
@@ -29,13 +29,19 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::If {
-                    condition: Expression::Identifier(identifier!(b"x")),
-                    then_branch: Box::new(Statement::Return {
-                        value: Some(Expression::Integer(1)),
-                    }),
-                    else_branch: None,
-                })
+                Ok(statement!(
+                    1,
+                    StatementKind::If {
+                        condition: Expression::Identifier(identifier!(b"x")),
+                        then_branch: Box::new(statement!(
+                            1,
+                            StatementKind::Return {
+                                value: Some(Expression::Integer(1)),
+                            }
+                        )),
+                        else_branch: None,
+                    }
+                ))
             );
         }
 
@@ -60,15 +66,24 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::If {
-                    condition: Expression::Identifier(identifier!(b"x")),
-                    then_branch: Box::new(Statement::Return {
-                        value: Some(Expression::Integer(1)),
-                    }),
-                    else_branch: Some(Box::new(Statement::Return {
-                        value: Some(Expression::Integer(2)),
-                    })),
-                })
+                Ok(statement!(
+                    1,
+                    StatementKind::If {
+                        condition: Expression::Identifier(identifier!(b"x")),
+                        then_branch: Box::new(statement!(
+                            1,
+                            StatementKind::Return {
+                                value: Some(Expression::Integer(1)),
+                            }
+                        )),
+                        else_branch: Some(Box::new(statement!(
+                            1,
+                            StatementKind::Return {
+                                value: Some(Expression::Integer(2)),
+                            }
+                        ))),
+                    }
+                ))
             );
         }
 
@@ -145,19 +160,31 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::If {
-                    condition: Expression::Identifier(identifier!(b"a")),
-                    then_branch: Box::new(Statement::If {
-                        condition: Expression::Identifier(identifier!(b"b", 2)),
-                        then_branch: Box::new(Statement::Return {
-                            value: Some(Expression::Integer(1)),
-                        }),
-                        else_branch: Some(Box::new(Statement::Return {
-                            value: Some(Expression::Integer(2)),
-                        })),
-                    }),
-                    else_branch: None,
-                })
+                Ok(statement!(
+                    1,
+                    StatementKind::If {
+                        condition: Expression::Identifier(identifier!(b"a")),
+                        then_branch: Box::new(statement!(
+                            2,
+                            StatementKind::If {
+                                condition: Expression::Identifier(identifier!(b"b", 2)),
+                                then_branch: Box::new(statement!(
+                                    3,
+                                    StatementKind::Return {
+                                        value: Some(Expression::Integer(1)),
+                                    }
+                                )),
+                                else_branch: Some(Box::new(statement!(
+                                    4,
+                                    StatementKind::Return {
+                                        value: Some(Expression::Integer(2)),
+                                    }
+                                ))),
+                            }
+                        )),
+                        else_branch: None,
+                    }
+                ))
             );
         }
 
@@ -176,11 +203,14 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::If {
-                    condition: Expression::Identifier(identifier!(b"x")),
-                    then_branch: Box::new(Statement::Empty),
-                    else_branch: None,
-                })
+                Ok(statement!(
+                    1,
+                    StatementKind::If {
+                        condition: Expression::Identifier(identifier!(b"x")),
+                        then_branch: Box::new(statement!(1, StatementKind::Empty)),
+                        else_branch: None,
+                    }
+                ))
             );
         }
 
@@ -231,21 +261,30 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::If {
-                    condition: Expression::Identifier(identifier!(b"x")),
-                    then_branch: Box::new(Statement::Return {
-                        value: Some(Expression::Integer(1)),
-                    }),
-                    else_branch: None,
-                })
+                Ok(statement!(
+                    1,
+                    StatementKind::If {
+                        condition: Expression::Identifier(identifier!(b"x")),
+                        then_branch: Box::new(statement!(
+                            1,
+                            StatementKind::Return {
+                                value: Some(Expression::Integer(1)),
+                            }
+                        )),
+                        else_branch: None,
+                    }
+                ))
             );
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Assignment(Assignment {
-                    target: LValue::Identifier(identifier!(b"y", 2)),
-                    value: Expression::Integer(2),
-                }))
+                Ok(statement!(
+                    2,
+                    StatementKind::Assignment(Assignment {
+                        target: LValue::Identifier(identifier!(b"y", 2)),
+                        value: Expression::Integer(2),
+                    })
+                ))
             );
         }
     }
