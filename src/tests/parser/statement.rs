@@ -242,7 +242,7 @@ parser_contract!(
             assert_eq!(
                 parser.parse_statement(),
                 Ok(Statement::Return {
-                    value: Some(Expression::Identifier(identifier!(b"x"))),
+                    value: Some(Expression::Identifier(identifier!(b"x", 2))),
                 })
             );
         }
@@ -410,7 +410,7 @@ parser_contract!(
             assert_eq!(
                 parser.parse_statement(),
                 Ok(Statement::Assignment(Assignment {
-                    target: LValue::Identifier(identifier!(b"x")),
+                    target: LValue::Identifier(identifier!(b"x", 2)),
                     value: Expression::Integer(42),
                 }))
             );
