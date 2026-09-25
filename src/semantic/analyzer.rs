@@ -2,10 +2,14 @@ use std::{collections::HashMap, mem};
 
 use crate::{
     ast::{
-        program::Parameter,
-        statement::{LValue, StatementKind, VariableDeclaration},
+        Identifier,
+        expression::Expression,
+        program::{Parameter, Program},
+        statement::{
+            Assignment, Block, LValue, PrintContent, Statement, StatementKind, VariableDeclaration,
+        },
     },
-    semantic::TSemanticAnalyzer,
+    semantic::{SemanticError, TSemanticAnalyzer},
 };
 
 pub struct SemanticAnalyzer<'a> {
@@ -82,6 +86,141 @@ impl<'a> SemanticAnalyzer<'a> {
         self.context = parent;
         true
     }
+
+    fn with_scope<T>(
+        &mut self,
+        analyze: impl FnOnce(&mut Self) -> Result<T, SemanticError>,
+    ) -> Result<T, SemanticError> {
+        self.enter_scope();
+        let result = analyze(self);
+        let left_scope = self.leave_scope();
+        debug_assert!(left_scope, "entered semantic scope must have a parent");
+        result
+    }
+
+    fn analyze_block(&mut self, block: &'a Block) -> Result<(), SemanticError> {
+        for declaration in &block.declarations {
+            self.declare_variable(declaration);
+        }
+
+        for statement in &block.statements {
+            self.analyze_statement(statement)?;
+        }
+
+        Ok(())
+    }
+
+    fn declare_variable(&mut self, declaration: &'a VariableDeclaration) {
+        let name = match declaration {
+            VariableDeclaration::Scalar { name, .. } | VariableDeclaration::Array { name, .. } => {
+                name
+            }
+        };
+
+        self.context
+            .declare(name.as_bytes(), Symbol::Variable(declaration));
+    }
+
+    fn analyze_statement(&mut self, statement: &'a Statement) -> Result<(), SemanticError> {
+        let line = statement.line();
+
+        match &statement.kind {
+            StatementKind::Assignment(assignment) => self.analyze_assignment(assignment, line),
+            StatementKind::Return { value } => {
+                if let Some(expression) = value {
+                    self.analyze_expression(expression, line)?;
+                }
+                Ok(())
+            }
+            StatementKind::Print { content } => match content {
+                PrintContent::StringConst(_) => Ok(()),
+                PrintContent::Expression(expression) => self.analyze_expression(expression, line),
+            },
+            StatementKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                self.analyze_expression(condition, line)?;
+                self.analyze_statement(then_branch)?;
+                if let Some(else_branch) = else_branch {
+                    self.analyze_statement(else_branch)?;
+                }
+                Ok(())
+            }
+            StatementKind::Block(block) => {
+                self.with_scope(|analyzer| analyzer.analyze_block(block))
+            }
+            StatementKind::For {
+                initialization,
+                condition,
+                update,
+                body,
+            } => {
+                self.analyze_assignment(initialization, line)?;
+                self.analyze_expression(condition, line)?;
+                self.analyze_assignment(update, line)?;
+                self.analyze_statement(body)
+            }
+            StatementKind::Empty => Ok(()),
+        }
+    }
+
+    fn analyze_assignment(
+        &mut self,
+        assignment: &'a Assignment,
+        line: usize,
+    ) -> Result<(), SemanticError> {
+        self.analyze_lvalue(&assignment.target, line)?;
+        self.analyze_expression(&assignment.value, line)
+    }
+
+    fn analyze_lvalue(&mut self, lvalue: &'a LValue, line: usize) -> Result<(), SemanticError> {
+        match lvalue {
+            LValue::Identifier(identifier) => self.resolve_variable(identifier, line),
+            LValue::ArrayElement { array, index } => {
+                self.resolve_variable(array, line)?;
+                self.analyze_expression(index, line)
+            }
+        }
+    }
+
+    fn analyze_expression(
+        &mut self,
+        expression: &'a Expression,
+        line: usize,
+    ) -> Result<(), SemanticError> {
+        match expression {
+            Expression::Integer(_) | Expression::Char(_) => Ok(()),
+            Expression::Identifier(identifier) => self.resolve_variable(identifier, line),
+            Expression::Unary { expression, .. } => self.analyze_expression(expression, line),
+            Expression::Binary { left, right, .. } => {
+                self.analyze_expression(left, line)?;
+                self.analyze_expression(right, line)
+            }
+            Expression::ArrayAccess { array, index } => {
+                self.resolve_variable(array, line)?;
+                self.analyze_expression(index, line)
+            }
+            Expression::Call { arguments, .. } => {
+                for argument in arguments {
+                    self.analyze_expression(argument, line)?;
+                }
+                Ok(())
+            }
+        }
+    }
+
+    fn resolve_variable(&self, identifier: &Identifier, line: usize) -> Result<(), SemanticError> {
+        if self.context.resolve(identifier.as_bytes()).is_some() {
+            return Ok(());
+        }
+
+        Err(SemanticError::UndeclaredVariable {
+            name: identifier.name.clone(),
+            line,
+        })
+    }
 }
 
 impl Default for SemanticAnalyzer<'_> {
@@ -91,40 +230,9 @@ impl Default for SemanticAnalyzer<'_> {
 }
 
 impl<'a> TSemanticAnalyzer<'a> for SemanticAnalyzer<'a> {
-    fn analyze(
-        &mut self,
-        program: &'a crate::ast::program::Program,
-    ) -> Result<(), super::SemanticError> {
-        for declaration in &program.main.body.declarations {
-            match declaration {
-                VariableDeclaration::Scalar { name, .. } => {
-                    self.context
-                        .declare(&name.name, Symbol::Variable(declaration));
-                }
-                _ => todo!(),
-            }
-        }
-
-        for statement in &program.main.body.statements {
-            match &statement.kind {
-                StatementKind::Assignment(assignment) => {
-                    if let LValue::Identifier(ref id) = assignment.target {
-                        match self.context.resolve(&id.name) {
-                            None => {
-                                return Err(super::SemanticError::UndeclaredVariable {
-                                    name: id.name.to_owned(),
-                                    line: statement.line(),
-                                });
-                            }
-                            Some(_) => continue,
-                        }
-                    }
-                }
-                _ => todo!(),
-            }
-        }
-
-        Ok(())
+    fn analyze(&mut self, program: &'a Program) -> Result<(), SemanticError> {
+        self.context = Context::new();
+        self.analyze_block(&program.main.body)
     }
 }
 
@@ -134,18 +242,57 @@ mod tests {
     use crate::{
         ast::{
             Identifier,
-            program::{Parameter, Program},
+            expression::{BinaryOp, Expression},
+            program::{MainFunction, Parameter, Program},
             statement::{
                 Assignment, Block, LValue, Statement, StatementKind, Type, VariableDeclaration,
             },
         },
-        semantic::TSemanticAnalyzer,
+        semantic::{SemanticError, TSemanticAnalyzer},
     };
+
+    fn identifier(name: &[u8], line: usize) -> Identifier {
+        Identifier::new(name.to_vec(), line)
+    }
 
     fn parameter(name: &[u8]) -> Parameter {
         Parameter {
             data_type: Type::Int,
-            name: Identifier::new(name.to_vec(), 1),
+            name: identifier(name, 1),
+        }
+    }
+
+    fn scalar(name: &[u8], line: usize) -> VariableDeclaration {
+        VariableDeclaration::Scalar {
+            data_type: Type::Int,
+            name: identifier(name, line),
+        }
+    }
+
+    fn array(name: &[u8], line: usize) -> VariableDeclaration {
+        VariableDeclaration::Array {
+            data_type: Type::Int,
+            name: identifier(name, line),
+            length: 8,
+        }
+    }
+
+    fn assignment(line: usize, target: LValue, value: Expression) -> Statement {
+        Statement::new(
+            line,
+            StatementKind::Assignment(Assignment { target, value }),
+        )
+    }
+
+    fn program(declarations: Vec<VariableDeclaration>, statements: Vec<Statement>) -> Program {
+        Program {
+            functions: vec![],
+            main: MainFunction {
+                body: Block {
+                    declarations,
+                    statements,
+                },
+            },
         }
     }
 
@@ -213,30 +360,174 @@ mod tests {
 
     #[test]
     fn analyzer_can_resolve_simple_main() {
-        let program = Program {
-            functions: vec![],
-            main: crate::ast::program::MainFunction {
-                body: Block {
-                    declarations: vec![VariableDeclaration::Scalar {
-                        data_type: Type::Int,
-                        name: Identifier {
-                            name: b"x".to_vec(),
-                            line: 1,
-                        },
-                    }],
-                    statements: vec![Statement::new(
-                        1,
-                        StatementKind::Assignment(Assignment {
-                            target: LValue::Identifier(Identifier {
-                                name: b"x".to_vec(),
-                                line: 1,
-                            }),
-                            value: crate::ast::expression::Expression::Integer(20),
-                        }),
-                    )],
+        let program = program(
+            vec![scalar(b"x", 1)],
+            vec![assignment(
+                2,
+                LValue::Identifier(identifier(b"x", 2)),
+                Expression::Integer(20),
+            )],
+        );
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(analyzer.analyze(&program), Ok(()));
+    }
+
+    #[test]
+    fn undeclared_assignment_target_uses_statement_line() {
+        let program = program(
+            vec![],
+            vec![assignment(
+                7,
+                LValue::Identifier(identifier(b"missing", 99)),
+                Expression::Integer(20),
+            )],
+        );
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::UndeclaredVariable {
+                name: b"missing".to_vec(),
+                line: 7,
+            })
+        );
+    }
+
+    #[test]
+    fn undeclared_identifier_in_assignment_value_is_rejected() {
+        let program = program(
+            vec![scalar(b"x", 1)],
+            vec![assignment(
+                11,
+                LValue::Identifier(identifier(b"x", 11)),
+                Expression::Identifier(identifier(b"missing", 99)),
+            )],
+        );
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::UndeclaredVariable {
+                name: b"missing".to_vec(),
+                line: 11,
+            })
+        );
+    }
+
+    #[test]
+    fn analyzer_recurses_through_binary_expressions() {
+        let program = program(
+            vec![scalar(b"x", 1)],
+            vec![assignment(
+                5,
+                LValue::Identifier(identifier(b"x", 5)),
+                Expression::Binary {
+                    left: Box::new(Expression::Integer(1)),
+                    op: BinaryOp::Add,
+                    right: Box::new(Expression::Identifier(identifier(b"missing", 5))),
                 },
-            },
-        };
+            )],
+        );
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::UndeclaredVariable {
+                name: b"missing".to_vec(),
+                line: 5,
+            })
+        );
+    }
+
+    #[test]
+    fn nested_block_can_resolve_parent_variable() {
+        let nested = Statement::new(
+            2,
+            StatementKind::Block(Block {
+                declarations: vec![],
+                statements: vec![assignment(
+                    3,
+                    LValue::Identifier(identifier(b"x", 3)),
+                    Expression::Integer(1),
+                )],
+            }),
+        );
+        let program = program(vec![scalar(b"x", 1)], vec![nested]);
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(analyzer.analyze(&program), Ok(()));
+    }
+
+    #[test]
+    fn nested_block_scope_does_not_leak() {
+        let nested = Statement::new(
+            2,
+            StatementKind::Block(Block {
+                declarations: vec![scalar(b"inner", 3)],
+                statements: vec![assignment(
+                    4,
+                    LValue::Identifier(identifier(b"inner", 4)),
+                    Expression::Integer(1),
+                )],
+            }),
+        );
+        let program = program(
+            vec![],
+            vec![
+                nested,
+                assignment(
+                    9,
+                    LValue::Identifier(identifier(b"inner", 9)),
+                    Expression::Integer(2),
+                ),
+            ],
+        );
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::UndeclaredVariable {
+                name: b"inner".to_vec(),
+                line: 9,
+            })
+        );
+    }
+
+    #[test]
+    fn scope_is_restored_when_nested_analysis_fails() {
+        let nested = Statement::new(
+            2,
+            StatementKind::Block(Block {
+                declarations: vec![scalar(b"inner", 3)],
+                statements: vec![assignment(
+                    4,
+                    LValue::Identifier(identifier(b"missing", 4)),
+                    Expression::Integer(1),
+                )],
+            }),
+        );
+        let program = program(vec![scalar(b"outer", 1)], vec![nested]);
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert!(analyzer.analyze(&program).is_err());
+        assert!(analyzer.context.resolve(b"outer").is_some());
+        assert!(analyzer.context.resolve(b"inner").is_none());
+    }
+
+    #[test]
+    fn analyzer_resolves_array_target_and_index_expression() {
+        let program = program(
+            vec![array(b"values", 1), scalar(b"index", 2)],
+            vec![assignment(
+                3,
+                LValue::ArrayElement {
+                    array: identifier(b"values", 3),
+                    index: Box::new(Expression::Identifier(identifier(b"index", 3))),
+                },
+                Expression::Integer(42),
+            )],
+        );
 
         let mut analyzer = SemanticAnalyzer::new();
         assert_eq!(analyzer.analyze(&program), Ok(()));
