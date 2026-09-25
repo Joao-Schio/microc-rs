@@ -64,7 +64,7 @@ fn parses_generic_function_before_main() {
         Ok(Program {
             functions: vec![GenericFunction {
                 return_type: Type::Int,
-                name: b"helper".to_vec(),
+                name: identifier!(b"helper"),
                 parameters: vec![],
                 body: empty_block(),
             }],

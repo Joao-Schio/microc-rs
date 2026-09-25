@@ -30,7 +30,7 @@ parser_contract!(
                 Ok(Statement::Block(Block {
                     declarations: vec![VariableDeclaration::Scalar {
                         data_type: Type::Int,
-                        name: b"count".to_vec(),
+                        name: identifier!(b"count"),
                     }],
                     statements: vec![],
                 }))
@@ -55,7 +55,7 @@ parser_contract!(
                 Ok(Statement::Block(Block {
                     declarations: vec![VariableDeclaration::Scalar {
                         data_type: Type::Char,
-                        name: b"letter".to_vec(),
+                        name: identifier!(b"letter"),
                     }],
                     statements: vec![],
                 }))
@@ -84,11 +84,11 @@ parser_contract!(
                     declarations: vec![
                         VariableDeclaration::Scalar {
                             data_type: Type::Int,
-                            name: b"count".to_vec(),
+                            name: identifier!(b"count"),
                         },
                         VariableDeclaration::Scalar {
                             data_type: Type::Char,
-                            name: b"letter".to_vec(),
+                            name: identifier!(b"letter"),
                         },
                     ],
                     statements: vec![],
@@ -118,10 +118,10 @@ parser_contract!(
                 Ok(Statement::Block(Block {
                     declarations: vec![VariableDeclaration::Scalar {
                         data_type: Type::Int,
-                        name: b"x".to_vec(),
+                        name: identifier!(b"x"),
                     }],
                     statements: vec![Statement::Assignment(Assignment {
-                        target: LValue::Identifier(b"x".to_vec()),
+                        target: LValue::Identifier(identifier!(b"x")),
                         value: Expression::Integer(10),
                     })],
                 }))
@@ -193,7 +193,7 @@ parser_contract!(
                 Ok(Statement::Block(Block {
                     declarations: vec![VariableDeclaration::Array {
                         data_type: Type::Int,
-                        name: b"values".to_vec(),
+                        name: identifier!(b"values"),
                         length: 10,
                     }],
                     statements: vec![],
