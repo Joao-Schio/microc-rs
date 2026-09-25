@@ -116,7 +116,7 @@ parser_contract!(
                     body: Box::new(Statement::Block(Block {
                         declarations: vec![],
                         statements: vec![Statement::Return {
-                            value: Some(Expression::Identifier(identifier!(b"i"))),
+                            value: Some(Expression::Identifier(identifier!(b"i", 2))),
                         },],
                     })),
                 })
