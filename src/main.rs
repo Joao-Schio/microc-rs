@@ -5,7 +5,7 @@ mod lexer;
 mod parser;
 mod scanner;
 mod token;
-
+mod semantic;
 #[cfg(test)]
 mod tests;
 
