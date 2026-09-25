@@ -1,6 +1,12 @@
 use std::{collections::HashMap, mem};
 
-use crate::ast::{program::Parameter, statement::VariableDeclaration};
+use crate::{
+    ast::{
+        program::Parameter,
+        statement::{LValue, VariableDeclaration},
+    },
+    semantic::TSemanticAnalyzer,
+};
 
 pub struct SemanticAnalyzer<'a> {
     context: Context<'a>,
@@ -84,10 +90,54 @@ impl Default for SemanticAnalyzer<'_> {
     }
 }
 
+impl<'a> TSemanticAnalyzer<'a> for SemanticAnalyzer<'a> {
+    fn analyze(
+        &mut self,
+        program: &'a crate::ast::program::Program,
+    ) -> Result<(), super::SemanticError> {
+        for i in &program.main.body.declarations {
+            match i {
+                VariableDeclaration::Scalar { data_type, name } => {
+                    self.context.declare(&name.name, Symbol::Variable(i));
+                }
+                _ => todo!(),
+            }
+        }
+
+        for i in &program.main.body.statements {
+            match i {
+                crate::ast::statement::Statement::Assignment(assignment) => {
+                    if let LValue::Identifier(ref id) = assignment.target {
+                        match self.context.resolve(&id.name) {
+                            None => {
+                                return Err(super::SemanticError::UndeclaredVariable {
+                                    name: id.name.to_owned(),
+                                    line: 2,
+                                });
+                            }
+                            Some(_) => continue,
+                        }
+                    }
+                }
+                _ => todo!(),
+            }
+        }
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Context, SemanticAnalyzer, Symbol};
-    use crate::ast::{Identifier, program::Parameter, statement::Type};
+    use crate::{
+        ast::{
+            Identifier,
+            program::{Parameter, Program},
+            statement::{Assignment, Block, LValue, Statement, Type, VariableDeclaration},
+        },
+        semantic::{TSemanticAnalyzer, analyzer},
+    };
 
     fn parameter(name: &[u8]) -> Parameter {
         Parameter {
@@ -156,5 +206,33 @@ mod tests {
         assert!(analyzer.context.resolve(b"outer").is_some());
         assert!(analyzer.context.resolve(b"inner").is_none());
         assert!(!analyzer.leave_scope());
+    }
+
+    #[test]
+    fn analyzer_can_resolve_simple_main() {
+        let program = Program {
+            functions: vec![],
+            main: crate::ast::program::MainFunction {
+                body: Block {
+                    declarations: vec![VariableDeclaration::Scalar {
+                        data_type: Type::Int,
+                        name: Identifier {
+                            name: b"x".to_vec(),
+                            line: 1,
+                        },
+                    }],
+                    statements: vec![Statement::Assignment(Assignment {
+                        target: LValue::Identifier(Identifier {
+                            name: b"x".to_vec(),
+                            line: 1,
+                        }),
+                        value: crate::ast::expression::Expression::Integer(20),
+                    })],
+                },
+            },
+        };
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(analyzer.analyze(&program), Ok(()));
     }
 }

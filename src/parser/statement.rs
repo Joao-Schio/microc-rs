@@ -1,7 +1,9 @@
 use crate::{
     ast::{
         Identifier,
-        statement::{Assignment, Block, LValue, PrintContent, Statement, Type, VariableDeclaration},
+        statement::{
+            Assignment, Block, LValue, PrintContent, Statement, Type, VariableDeclaration,
+        },
     },
     token::TokenType,
 };
