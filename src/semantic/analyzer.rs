@@ -1,6 +1,6 @@
 use std::{collections::HashMap, mem};
 
-use crate::ast::{Identifier, program::Parameter, statement::VariableDeclaration};
+use crate::ast::{program::Parameter, statement::VariableDeclaration};
 
 pub struct SemanticAnalyzer<'a> {
     context: Context<'a>,
