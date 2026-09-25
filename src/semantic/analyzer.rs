@@ -1,14 +1,22 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
-use crate::ast::program::Parameter;
-
-
+use crate::ast::{program::Parameter, statement::VariableDeclaration};
 
 
 
-pub struct SemanticScope<'a> {
-    context : Option<Box<SemanticScope<'a>>>,
-    variables: HashSet<&'a Parameter>
+pub struct SemanticAnalyzer<'a> {
+    context: SemanticContext<'a>,
 }
 
+pub struct SemanticContext<'a> {
+    scopes: Option<Box<SemanticScope<'a>>>
+}
 
+pub struct SemanticScope<'a> {
+    symbols: HashMap<&'a [u8], Symbol<'a>>,
+}
+
+pub enum Symbol<'a> {
+    Parameter(&'a Parameter),
+    Variable(&'a VariableDeclaration),
+}
