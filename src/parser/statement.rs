@@ -1,6 +1,7 @@
 use crate::{
-    ast::statement::{
-        Assignment, Block, LValue, PrintContent, Statement, Type, VariableDeclaration,
+    ast::{
+        Identifier,
+        statement::{Assignment, Block, LValue, PrintContent, Statement, Type, VariableDeclaration},
     },
     token::TokenType,
 };
@@ -49,6 +50,7 @@ impl StatementParser {
         let TokenType::Id(identifier) = token.into_type() else {
             unreachable!("identifier predicate must only accept TokenType::Id")
         };
+        let identifier = Identifier::from(identifier);
 
         match *context.current().token_type() {
             TokenType::LBracket => {
@@ -170,6 +172,7 @@ impl StatementParser {
         let TokenType::Id(identifier) = token.into_type() else {
             unreachable!("identifier predicate must only accept TokenType::Id")
         };
+        let identifier = Identifier::from(identifier);
 
         match context.current().token_type() {
             TokenType::LBracket => {

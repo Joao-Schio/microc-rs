@@ -1,5 +1,8 @@
 use crate::{
-    ast::expression::{BinaryOp, Expression, UnaryOp},
+    ast::{
+        Identifier,
+        expression::{BinaryOp, Expression, UnaryOp},
+    },
     token::TokenType,
 };
 
@@ -32,7 +35,7 @@ impl ExprParser {
     fn parse_array_access(
         &mut self,
         context: &mut ParserContext,
-        identifier: Vec<u8>,
+        identifier: Identifier,
     ) -> Result<Expression, ParserError> {
         context.advance();
         let expr = self.parse_expression(context)?;
@@ -63,7 +66,7 @@ impl ExprParser {
     fn parse_call(
         &mut self,
         context: &mut ParserContext,
-        identifier: Vec<u8>,
+        identifier: Identifier,
     ) -> Result<Expression, ParserError> {
         context.expect(TokenType::Lparen)?;
         let args = self.parse_arguments(context)?;
@@ -82,6 +85,7 @@ impl ExprParser {
         let TokenType::Id(identifier) = token.into_type() else {
             unreachable!("identifier predicate must only accept TokenType::Id")
         };
+        let identifier = Identifier::from(identifier);
 
         match *context.current().token_type() {
             TokenType::LBracket => self.parse_array_access(context, identifier),

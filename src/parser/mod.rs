@@ -5,6 +5,7 @@ use std::{error::Error, fmt, iter::Peekable, vec::IntoIter};
 
 use crate::{
     ast::{
+        Identifier,
         expression::Expression,
         program::{GenericFunction, MainFunction, Parameter, Program},
         statement::{Statement, Type, VariableDeclaration},
@@ -177,14 +178,14 @@ where
         }
     }
 
-    fn parse_name(&mut self) -> Result<Vec<u8>, ParserError> {
+    fn parse_name(&mut self) -> Result<Identifier, ParserError> {
         let token = self
             .context
             .expect_matching("Id", |found| matches!(found, TokenType::Id(_)))?;
         let TokenType::Id(identifier) = token.into_type() else {
             unreachable!("identifier predicate must only accept TokenType::Id")
         };
-        Ok(identifier)
+        Ok(identifier.into())
     }
 
     fn parse_generic_function(
