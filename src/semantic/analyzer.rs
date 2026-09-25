@@ -13,6 +13,7 @@ pub struct SemanticContext<'a> {
 }
 
 pub struct SemanticScope<'a> {
+    parent: Option<Box<SemanticScope<'a>>>,
     symbols: HashMap<&'a [u8], Symbol<'a>>,
 }
 
