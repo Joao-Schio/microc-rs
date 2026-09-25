@@ -92,7 +92,7 @@ mod tests {
     fn parameter(name: &[u8]) -> Parameter {
         Parameter {
             data_type: Type::Int,
-            name: Identifier::from(name.to_vec()),
+            name: Identifier::new(name.to_vec(), 1),
         }
     }
 
