@@ -30,7 +30,7 @@ parser_contract!(
                 Ok(Statement::Block(Block {
                     declarations: vec![VariableDeclaration::Array {
                         data_type: Type::Char,
-                        name: identifier!(b"buffer"),
+                        name: identifier!(b"buffer", 2),
                         length: 32,
                     }],
                     statements: vec![],
@@ -69,16 +69,16 @@ parser_contract!(
                     declarations: vec![
                         VariableDeclaration::Scalar {
                             data_type: Type::Int,
-                            name: identifier!(b"count"),
+                            name: identifier!(b"count", 2),
                         },
                         VariableDeclaration::Array {
                             data_type: Type::Char,
-                            name: identifier!(b"buffer"),
+                            name: identifier!(b"buffer", 3),
                             length: 8,
                         },
                         VariableDeclaration::Array {
                             data_type: Type::Int,
-                            name: identifier!(b"values"),
+                            name: identifier!(b"values", 4),
                             length: 4,
                         },
                     ],
