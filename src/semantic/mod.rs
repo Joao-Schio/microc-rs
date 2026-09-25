@@ -1,13 +1,10 @@
-use std::collections::HashMap;
+use crate::ast::program::Program;
 
-use crate::ast::{
-    program::{Parameter, Program},
-    statement::VariableDeclaration,
-};
 pub mod analyzer;
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum SemanticError {
-    UndeclaredVariable { name: Vec<u8>, line: usize },
+    UndeclaredVariable { name: Vec<u8> },
 }
 
 pub trait TSemanticAnalyzer<'a> {
