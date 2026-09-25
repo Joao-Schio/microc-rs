@@ -84,11 +84,11 @@ parser_contract!(
                     declarations: vec![
                         VariableDeclaration::Scalar {
                             data_type: Type::Int,
-                            name: identifier!(b"count"),
+                            name: identifier!(b"count", 2),
                         },
                         VariableDeclaration::Scalar {
                             data_type: Type::Char,
-                            name: identifier!(b"letter"),
+                            name: identifier!(b"letter", 3),
                         },
                     ],
                     statements: vec![],
@@ -118,10 +118,10 @@ parser_contract!(
                 Ok(Statement::Block(Block {
                     declarations: vec![VariableDeclaration::Scalar {
                         data_type: Type::Int,
-                        name: identifier!(b"x"),
+                        name: identifier!(b"x", 2),
                     }],
                     statements: vec![Statement::Assignment(Assignment {
-                        target: LValue::Identifier(identifier!(b"x")),
+                        target: LValue::Identifier(identifier!(b"x", 3)),
                         value: Expression::Integer(10),
                     })],
                 }))
@@ -193,7 +193,7 @@ parser_contract!(
                 Ok(Statement::Block(Block {
                     declarations: vec![VariableDeclaration::Array {
                         data_type: Type::Int,
-                        name: identifier!(b"values"),
+                        name: identifier!(b"values", 2),
                         length: 10,
                     }],
                     statements: vec![],
