@@ -1,4 +1,4 @@
-use std::{collections::HashMap, mem};
+use std::{collections::{hash_map::Entry, HashMap}, mem};
 
 use crate::{
     ast::{
@@ -41,19 +41,17 @@ impl<'a> Context<'a> {
         }
     }
 
-    pub fn declare(&mut self,  variable: &'a VariableDeclaration, symbol: Symbol<'a>) -> Result<Option<Symbol<'a>>, SemanticError> {
-        let name = match variable {
-            VariableDeclaration::Array { name, ..} | VariableDeclaration::Scalar { name, .. }=> {
-                name
+    pub fn declare(
+        &mut self,
+        identifier: &'a Identifier,
+        symbol: Symbol<'a>,
+    ) -> Result<(), SemanticError> {
+        match self.symbols.entry(identifier.as_bytes()) {
+            Entry::Vacant(entry) => {
+                entry.insert(symbol);
+                Ok(())
             }
-        };
-        match self.symbols.get(name.name.as_slice()) {
-            None => {
-                Ok(self.symbols.insert(name.name.as_ref(), symbol))
-            },
-            Some(_) => {
-                Err(SemanticError::DuplicateDeclaration(name.clone()))
-            }
+            Entry::Occupied(_) => Err(SemanticError::DuplicateDeclaration(identifier.clone())),
         }
     }
 
@@ -112,7 +110,7 @@ impl<'a> SemanticAnalyzer<'a> {
 
     fn analyze_block(&mut self, block: &'a Block) -> Result<(), SemanticError> {
         for declaration in &block.declarations {
-            self.declare_variable(declaration);
+            self.declare_variable(declaration)?;
         }
 
         for statement in &block.statements {
@@ -122,9 +120,17 @@ impl<'a> SemanticAnalyzer<'a> {
         Ok(())
     }
 
-    fn declare_variable(&mut self, declaration: &'a VariableDeclaration) {
-        self.context
-            .declare(declaration, Symbol::Variable(declaration));
+    fn declare_variable(
+        &mut self,
+        declaration: &'a VariableDeclaration,
+    ) -> Result<(), SemanticError> {
+        let identifier = match declaration {
+            VariableDeclaration::Scalar { name, .. } | VariableDeclaration::Array { name, .. } => {
+                name
+            }
+        };
+
+        self.context.declare(identifier, Symbol::Variable(declaration))
     }
 
     fn analyze_statement(&mut self, statement: &'a Statement) -> Result<(), SemanticError> {
@@ -233,7 +239,7 @@ impl<'a> SemanticAnalyzer<'a> {
             for parameter in &function.parameters {
                 analyzer
                     .context
-                    .declare(parameter.name.as_bytes(), Symbol::Parameter(parameter));
+                    .declare(&parameter.name, Symbol::Parameter(parameter))?;
             }
 
             analyzer.analyze_block(&function.body)
@@ -321,7 +327,8 @@ mod tests {
     fn resolves_symbol_from_current_context() {
         let parameter = parameter(b"value");
         let mut context = Context::new();
-        context.declare(parameter.name.as_bytes(), Symbol::Parameter(&parameter));
+        context.declare(&parameter.name, Symbol::Parameter(&parameter))
+            .expect("unique declaration should succeed");
 
         match context.resolve(b"value") {
             Some(Symbol::Parameter(found)) => assert!(std::ptr::eq(*found, &parameter)),
@@ -333,7 +340,8 @@ mod tests {
     fn resolves_symbol_from_parent_context() {
         let parameter = parameter(b"value");
         let mut parent = Context::new();
-        parent.declare(parameter.name.as_bytes(), Symbol::Parameter(&parameter));
+        parent.declare(&parameter.name, Symbol::Parameter(&parameter))
+            .expect("unique declaration should succeed");
         let context = Context::with_parent(parent);
 
         match context.resolve(b"value") {
@@ -347,9 +355,11 @@ mod tests {
         let outer = parameter(b"value");
         let inner = parameter(b"value");
         let mut parent = Context::new();
-        parent.declare(outer.name.as_bytes(), Symbol::Parameter(&outer));
+        parent.declare(&outer.name, Symbol::Parameter(&outer))
+            .expect("unique declaration should succeed");
         let mut context = Context::with_parent(parent);
-        context.declare(inner.name.as_bytes(), Symbol::Parameter(&inner));
+        context.declare(&inner.name, Symbol::Parameter(&inner))
+            .expect("unique declaration should succeed");
 
         match context.resolve(b"value") {
             Some(Symbol::Parameter(found)) => assert!(std::ptr::eq(*found, &inner)),
@@ -364,12 +374,14 @@ mod tests {
         let mut analyzer = SemanticAnalyzer::new();
         analyzer
             .context
-            .declare(outer.name.as_bytes(), Symbol::Parameter(&outer));
+            .declare(&outer.name, Symbol::Parameter(&outer))
+            .expect("unique declaration should succeed");
 
         analyzer.enter_scope();
         analyzer
             .context
-            .declare(inner.name.as_bytes(), Symbol::Parameter(&inner));
+            .declare(&inner.name, Symbol::Parameter(&inner))
+            .expect("unique declaration should succeed");
 
         assert!(analyzer.context.resolve(b"outer").is_some());
         assert!(analyzer.context.resolve(b"inner").is_some());
@@ -661,4 +673,151 @@ mod tests {
             }))
         );
     }
+    #[test]
+    fn duplicate_declaration_preserves_original_symbol() {
+        let original = scalar(b"value", 1);
+        let duplicate = scalar(b"value", 4);
+        let VariableDeclaration::Scalar { name: original_name, .. } = &original else {
+            unreachable!()
+        };
+        let VariableDeclaration::Scalar { name: duplicate_name, .. } = &duplicate else {
+            unreachable!()
+        };
+
+        let mut context = Context::new();
+        context
+            .declare(original_name, Symbol::Variable(&original))
+            .expect("first declaration should succeed");
+
+        assert_eq!(
+            context.declare(duplicate_name, Symbol::Variable(&duplicate)),
+            Err(SemanticError::DuplicateDeclaration(identifier(b"value", 4)))
+        );
+
+        match context.resolve(b"value") {
+            Some(Symbol::Variable(found)) => assert!(std::ptr::eq(*found, &original)),
+            _ => panic!("the original declaration should remain in the symbol table"),
+        }
+    }
+
+    #[test]
+    fn rejects_scalar_and_array_with_same_name_in_one_scope() {
+        let program = program(vec![scalar(b"value", 1), array(b"value", 5)], vec![]);
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::DuplicateDeclaration(identifier(b"value", 5)))
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_function_parameters() {
+        let program = Program {
+            functions: vec![GenericFunction {
+                return_type: Type::Int,
+                name: identifier(b"f", 1),
+                parameters: vec![
+                    parameter(b"value"),
+                    Parameter {
+                        data_type: Type::Char,
+                        name: identifier(b"value", 2),
+                    },
+                ],
+                body: Block {
+                    declarations: vec![],
+                    statements: vec![],
+                },
+            }],
+            main: MainFunction {
+                body: Block {
+                    declarations: vec![],
+                    statements: vec![],
+                },
+            },
+        };
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::DuplicateDeclaration(identifier(b"value", 2)))
+        );
+    }
+
+    #[test]
+    fn rejects_local_variable_colliding_with_function_parameter() {
+        let program = Program {
+            functions: vec![GenericFunction {
+                return_type: Type::Int,
+                name: identifier(b"f", 1),
+                parameters: vec![parameter(b"value")],
+                body: Block {
+                    declarations: vec![scalar(b"value", 4)],
+                    statements: vec![],
+                },
+            }],
+            main: MainFunction {
+                body: Block {
+                    declarations: vec![],
+                    statements: vec![],
+                },
+            },
+        };
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::DuplicateDeclaration(identifier(b"value", 4)))
+        );
+    }
+
+    #[test]
+    fn permits_shadowing_variable_in_nested_block() {
+        let nested = Statement::new(
+            2,
+            StatementKind::Block(Block {
+                declarations: vec![scalar(b"value", 3)],
+                statements: vec![assignment(
+                    4,
+                    LValue::Identifier(identifier(b"value", 4)),
+                    Expression::Integer(1),
+                )],
+            }),
+        );
+        let program = program(vec![scalar(b"value", 1)], vec![nested]);
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(analyzer.analyze(&program), Ok(()));
+    }
+
+    #[test]
+    fn permits_same_parameter_name_in_different_functions() {
+        let function = |name: &[u8]| GenericFunction {
+            return_type: Type::Int,
+            name: identifier(name, 1),
+            parameters: vec![parameter(b"value")],
+            body: Block {
+                declarations: vec![],
+                statements: vec![Statement::new(
+                    2,
+                    StatementKind::Return {
+                        value: Some(Expression::Identifier(identifier(b"value", 2))),
+                    },
+                )],
+            },
+        };
+        let program = Program {
+            functions: vec![function(b"first"), function(b"second")],
+            main: MainFunction {
+                body: Block {
+                    declarations: vec![],
+                    statements: vec![],
+                },
+            },
+        };
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(analyzer.analyze(&program), Ok(()));
+    }
+
 }
