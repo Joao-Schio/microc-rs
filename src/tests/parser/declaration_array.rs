@@ -1,5 +1,5 @@
 use crate::{
-    ast::statement::{Block, Statement, Type, VariableDeclaration},
+    ast::statement::{Block, StatementKind, Type, VariableDeclaration},
     parser::ParserError,
     token::{Token, TokenType},
 };
@@ -27,14 +27,17 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Block(Block {
-                    declarations: vec![VariableDeclaration::Array {
-                        data_type: Type::Char,
-                        name: identifier!(b"buffer", 2),
-                        length: 32,
-                    }],
-                    statements: vec![],
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Block(Block {
+                        declarations: vec![VariableDeclaration::Array {
+                            data_type: Type::Char,
+                            name: identifier!(b"buffer", 2),
+                            length: 32,
+                        }],
+                        statements: vec![],
+                    })
+                ))
             );
         }
 
@@ -65,25 +68,28 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Block(Block {
-                    declarations: vec![
-                        VariableDeclaration::Scalar {
-                            data_type: Type::Int,
-                            name: identifier!(b"count", 2),
-                        },
-                        VariableDeclaration::Array {
-                            data_type: Type::Char,
-                            name: identifier!(b"buffer", 3),
-                            length: 8,
-                        },
-                        VariableDeclaration::Array {
-                            data_type: Type::Int,
-                            name: identifier!(b"values", 4),
-                            length: 4,
-                        },
-                    ],
-                    statements: vec![],
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Block(Block {
+                        declarations: vec![
+                            VariableDeclaration::Scalar {
+                                data_type: Type::Int,
+                                name: identifier!(b"count", 2),
+                            },
+                            VariableDeclaration::Array {
+                                data_type: Type::Char,
+                                name: identifier!(b"buffer", 3),
+                                length: 8,
+                            },
+                            VariableDeclaration::Array {
+                                data_type: Type::Int,
+                                name: identifier!(b"values", 4),
+                                length: 4,
+                            },
+                        ],
+                        statements: vec![],
+                    })
+                ))
             );
         }
 

@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         expression::{BinaryOp, Expression},
-        statement::{Assignment, Block, LValue, Statement},
+        statement::{Assignment, Block, LValue, StatementKind},
     },
     token::{Token, TokenType},
 };
@@ -41,26 +41,29 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::For {
-                    initialization: Assignment {
-                        target: LValue::Identifier(identifier!(b"i")),
-                        value: Expression::Integer(0),
-                    },
-                    condition: Expression::Binary {
-                        left: Box::new(Expression::Identifier(identifier!(b"i"))),
-                        op: BinaryOp::Less,
-                        right: Box::new(Expression::Integer(10)),
-                    },
-                    update: Assignment {
-                        target: LValue::Identifier(identifier!(b"i")),
-                        value: Expression::Binary {
-                            left: Box::new(Expression::Identifier(identifier!(b"i"))),
-                            op: BinaryOp::Add,
-                            right: Box::new(Expression::Integer(1)),
+                Ok(statement!(
+                    1,
+                    StatementKind::For {
+                        initialization: Assignment {
+                            target: LValue::Identifier(identifier!(b"i")),
+                            value: Expression::Integer(0),
                         },
-                    },
-                    body: Box::new(Statement::Empty),
-                })
+                        condition: Expression::Binary {
+                            left: Box::new(Expression::Identifier(identifier!(b"i"))),
+                            op: BinaryOp::Less,
+                            right: Box::new(Expression::Integer(10)),
+                        },
+                        update: Assignment {
+                            target: LValue::Identifier(identifier!(b"i")),
+                            value: Expression::Binary {
+                                left: Box::new(Expression::Identifier(identifier!(b"i"))),
+                                op: BinaryOp::Add,
+                                right: Box::new(Expression::Integer(1)),
+                            },
+                        },
+                        body: Box::new(statement!(1, StatementKind::Empty)),
+                    }
+                ))
             );
         }
 
@@ -95,31 +98,40 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::For {
-                    initialization: Assignment {
-                        target: LValue::Identifier(identifier!(b"i")),
-                        value: Expression::Integer(0),
-                    },
-                    condition: Expression::Binary {
-                        left: Box::new(Expression::Identifier(identifier!(b"i"))),
-                        op: BinaryOp::Less,
-                        right: Box::new(Expression::Integer(10)),
-                    },
-                    update: Assignment {
-                        target: LValue::Identifier(identifier!(b"i")),
-                        value: Expression::Binary {
-                            left: Box::new(Expression::Identifier(identifier!(b"i"))),
-                            op: BinaryOp::Add,
-                            right: Box::new(Expression::Integer(1)),
+                Ok(statement!(
+                    1,
+                    StatementKind::For {
+                        initialization: Assignment {
+                            target: LValue::Identifier(identifier!(b"i")),
+                            value: Expression::Integer(0),
                         },
-                    },
-                    body: Box::new(Statement::Block(Block {
-                        declarations: vec![],
-                        statements: vec![Statement::Return {
-                            value: Some(Expression::Identifier(identifier!(b"i", 2))),
-                        },],
-                    })),
-                })
+                        condition: Expression::Binary {
+                            left: Box::new(Expression::Identifier(identifier!(b"i"))),
+                            op: BinaryOp::Less,
+                            right: Box::new(Expression::Integer(10)),
+                        },
+                        update: Assignment {
+                            target: LValue::Identifier(identifier!(b"i")),
+                            value: Expression::Binary {
+                                left: Box::new(Expression::Identifier(identifier!(b"i"))),
+                                op: BinaryOp::Add,
+                                right: Box::new(Expression::Integer(1)),
+                            },
+                        },
+                        body: Box::new(statement!(
+                            1,
+                            StatementKind::Block(Block {
+                                declarations: vec![],
+                                statements: vec![statement!(
+                                    2,
+                                    StatementKind::Return {
+                                        value: Some(Expression::Identifier(identifier!(b"i", 2))),
+                                    }
+                                )],
+                            })
+                        )),
+                    }
+                ))
             );
         }
     }

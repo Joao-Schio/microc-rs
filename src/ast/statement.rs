@@ -47,7 +47,23 @@ pub struct Assignment {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Statement {
+pub struct Statement {
+    line: usize,
+    pub kind: StatementKind,
+}
+
+impl Statement {
+    pub fn new(line: usize, kind: StatementKind) -> Self {
+        Self { line, kind }
+    }
+
+    pub fn line(&self) -> usize {
+        self.line
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum StatementKind {
     Assignment(Assignment),
     Return {
         value: Option<Expression>,

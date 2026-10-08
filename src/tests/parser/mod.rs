@@ -10,6 +10,12 @@ macro_rules! identifier {
     };
 }
 
+macro_rules! statement {
+    ($line:expr, $kind:expr) => {
+        crate::ast::statement::Statement::new($line, $kind)
+    };
+}
+
 mod block;
 mod declaration;
 mod declaration_array;

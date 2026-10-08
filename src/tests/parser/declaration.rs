@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         expression::Expression,
-        statement::{Assignment, Block, LValue, Statement, Type, VariableDeclaration},
+        statement::{Assignment, Block, LValue, StatementKind, Type, VariableDeclaration},
     },
     parser::ParserError,
     token::{Token, TokenType},
@@ -27,13 +27,16 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Block(Block {
-                    declarations: vec![VariableDeclaration::Scalar {
-                        data_type: Type::Int,
-                        name: identifier!(b"count"),
-                    }],
-                    statements: vec![],
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Block(Block {
+                        declarations: vec![VariableDeclaration::Scalar {
+                            data_type: Type::Int,
+                            name: identifier!(b"count"),
+                        }],
+                        statements: vec![],
+                    })
+                ))
             );
         }
 
@@ -52,13 +55,16 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Block(Block {
-                    declarations: vec![VariableDeclaration::Scalar {
-                        data_type: Type::Char,
-                        name: identifier!(b"letter"),
-                    }],
-                    statements: vec![],
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Block(Block {
+                        declarations: vec![VariableDeclaration::Scalar {
+                            data_type: Type::Char,
+                            name: identifier!(b"letter"),
+                        }],
+                        statements: vec![],
+                    })
+                ))
             );
         }
 
@@ -80,19 +86,22 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Block(Block {
-                    declarations: vec![
-                        VariableDeclaration::Scalar {
-                            data_type: Type::Int,
-                            name: identifier!(b"count", 2),
-                        },
-                        VariableDeclaration::Scalar {
-                            data_type: Type::Char,
-                            name: identifier!(b"letter", 3),
-                        },
-                    ],
-                    statements: vec![],
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Block(Block {
+                        declarations: vec![
+                            VariableDeclaration::Scalar {
+                                data_type: Type::Int,
+                                name: identifier!(b"count", 2),
+                            },
+                            VariableDeclaration::Scalar {
+                                data_type: Type::Char,
+                                name: identifier!(b"letter", 3),
+                            },
+                        ],
+                        statements: vec![],
+                    })
+                ))
             );
         }
 
@@ -115,16 +124,22 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Block(Block {
-                    declarations: vec![VariableDeclaration::Scalar {
-                        data_type: Type::Int,
-                        name: identifier!(b"x", 2),
-                    }],
-                    statements: vec![Statement::Assignment(Assignment {
-                        target: LValue::Identifier(identifier!(b"x", 3)),
-                        value: Expression::Integer(10),
-                    })],
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Block(Block {
+                        declarations: vec![VariableDeclaration::Scalar {
+                            data_type: Type::Int,
+                            name: identifier!(b"x", 2),
+                        }],
+                        statements: vec![statement!(
+                            3,
+                            StatementKind::Assignment(Assignment {
+                                target: LValue::Identifier(identifier!(b"x", 3)),
+                                value: Expression::Integer(10),
+                            })
+                        )],
+                    })
+                ))
             );
         }
 
@@ -190,14 +205,17 @@ parser_contract!(
 
             assert_eq!(
                 parser.parse_statement(),
-                Ok(Statement::Block(Block {
-                    declarations: vec![VariableDeclaration::Array {
-                        data_type: Type::Int,
-                        name: identifier!(b"values", 2),
-                        length: 10,
-                    }],
-                    statements: vec![],
-                }))
+                Ok(statement!(
+                    1,
+                    StatementKind::Block(Block {
+                        declarations: vec![VariableDeclaration::Array {
+                            data_type: Type::Int,
+                            name: identifier!(b"values", 2),
+                            length: 10,
+                        }],
+                        statements: vec![],
+                    })
+                ))
             );
         }
 
