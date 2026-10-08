@@ -527,9 +527,31 @@ mod tests {
 
         let mut analyzer = SemanticAnalyzer::new();
         assert!(analyzer.analyze_block(&program.main.body).is_err());
-            
         assert!(analyzer.context.resolve(b"outer").is_some());
         assert!(analyzer.context.resolve(b"inner").is_none());
+    }
+
+    #[test]
+    fn main_scope_is_restored_when_analysis_fails() {
+        let program = program(
+            vec![scalar(b"outer", 1)],
+            vec![assignment(
+                2,
+                LValue::Identifier(identifier(b"missing", 2)),
+                Expression::Integer(1),
+            )],
+        );
+
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::UndeclaredVariable {
+                name: b"missing".to_vec(),
+                line: 2,
+            })
+        );
+        assert!(analyzer.context.resolve(b"outer").is_none());
     }
 
     #[test]
