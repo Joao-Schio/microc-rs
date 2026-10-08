@@ -330,6 +330,194 @@ mod tests {
         }
     }
 
+    fn generic_function(name: &[u8], line: usize, statements: Vec<Statement>) -> GenericFunction {
+        GenericFunction {
+            return_type: Type::Int,
+            name: identifier(name, line),
+            parameters: vec![],
+            body: Block {
+                declarations: vec![],
+                statements,
+            },
+        }
+    }
+
+    fn return_expression(line: usize, value: Expression) -> Statement {
+        Statement::new(line, StatementKind::Return { value: Some(value) })
+    }
+
+    fn function_call(name: &[u8], line: usize, arguments: Vec<Expression>) -> Expression {
+        Expression::Call {
+            callee: identifier(name, line),
+            arguments,
+        }
+    }
+
+    #[test]
+    fn resolves_function_symbol_from_context() {
+        let function = generic_function(b"helper", 1, vec![]);
+        let mut context = Context::new();
+        context
+            .declare(&function.name, Symbol::Function(&function))
+            .expect("function declaration should succeed");
+
+        match context.resolve(b"helper") {
+            Some(Symbol::Function(found)) => assert!(std::ptr::eq(*found, &function)),
+            _ => panic!("expected function symbol"),
+        }
+    }
+
+    #[test]
+    fn calls_declared_function_from_main() {
+        let mut program = program(
+            vec![],
+            vec![return_expression(5, function_call(b"helper", 5, vec![]))],
+        );
+        program.functions.push(generic_function(
+            b"helper",
+            1,
+            vec![return_expression(2, Expression::Integer(42))],
+        ));
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(analyzer.analyze(&program), Ok(()));
+    }
+
+    #[test]
+    fn resolves_forward_function_reference() {
+        let mut program = program(vec![], vec![]);
+        program.functions = vec![
+            generic_function(
+                b"first",
+                1,
+                vec![return_expression(2, function_call(b"second", 2, vec![]))],
+            ),
+            generic_function(
+                b"second",
+                4,
+                vec![return_expression(5, Expression::Integer(42))],
+            ),
+        ];
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(analyzer.analyze(&program), Ok(()));
+    }
+
+    #[test]
+    fn resolves_recursive_function_reference() {
+        let mut program = program(vec![], vec![]);
+        program.functions.push(generic_function(
+            b"recurse",
+            1,
+            vec![return_expression(2, function_call(b"recurse", 2, vec![]))],
+        ));
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(analyzer.analyze(&program), Ok(()));
+    }
+
+    #[test]
+    fn rejects_duplicate_function_names() {
+        let mut program = program(vec![], vec![]);
+        program.functions = vec![
+            generic_function(b"helper", 1, vec![]),
+            generic_function(b"helper", 5, vec![]),
+        ];
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::DuplicateDeclaration(identifier(b"helper", 5)))
+        );
+    }
+
+    #[test]
+    fn rejects_call_to_local_variable() {
+        let program = program(
+            vec![scalar(b"value", 1)],
+            vec![return_expression(2, function_call(b"value", 2, vec![]))],
+        );
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::NotCallable(identifier(b"value", 2)))
+        );
+    }
+
+    #[test]
+    fn rejects_call_to_parameter() {
+        let mut program = program(vec![], vec![]);
+        let mut function = generic_function(
+            b"helper",
+            1,
+            vec![return_expression(2, function_call(b"value", 2, vec![]))],
+        );
+        function.parameters.push(parameter(b"value"));
+        program.functions.push(function);
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::NotCallable(identifier(b"value", 2)))
+        );
+    }
+
+    #[test]
+    fn rejects_function_used_as_variable() {
+        let mut program = program(
+            vec![],
+            vec![return_expression(
+                5,
+                Expression::Identifier(identifier(b"helper", 5)),
+            )],
+        );
+        program.functions.push(generic_function(b"helper", 1, vec![]));
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::NotAVariable(identifier(b"helper", 5)))
+        );
+    }
+
+    #[test]
+    fn local_variable_shadows_function_and_is_not_callable() {
+        let mut program = program(
+            vec![scalar(b"helper", 3)],
+            vec![return_expression(4, function_call(b"helper", 4, vec![]))],
+        );
+        program.functions.push(generic_function(b"helper", 1, vec![]));
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::NotCallable(identifier(b"helper", 4)))
+        );
+    }
+
+    #[test]
+    fn checks_arguments_of_a_valid_function_call() {
+        let mut program = program(
+            vec![],
+            vec![return_expression(
+                7,
+                function_call(
+                    b"helper",
+                    7,
+                    vec![Expression::Identifier(identifier(b"missing", 7))],
+                ),
+            )],
+        );
+        program.functions.push(generic_function(b"helper", 1, vec![]));
+
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::UndeclaredVariable(identifier(b"missing", 7)))
+        );
+    }
+
     #[test]
     fn resolves_symbol_from_current_context() {
         let parameter = parameter(b"value");
