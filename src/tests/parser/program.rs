@@ -1,6 +1,6 @@
 use crate::{
     ast::{
-        self, Identifier,
+        Identifier,
         program::{GenericFunction, MainFunction, Parameter, Program},
         statement::{Block, Type},
     },
