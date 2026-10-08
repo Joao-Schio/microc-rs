@@ -9,14 +9,16 @@ use crate::{
         expression::Expression,
         program::{GenericFunction, Parameter, Program},
         statement::{
-            Assignment, Block, LValue, PrintContent, Statement, StatementKind, VariableDeclaration,
+            Assignment, Block, LValue, PrintContent, Statement, StatementKind, Type,
+            VariableDeclaration,
         },
     },
-    semantic::{SemanticError, TSemanticAnalyzer},
+    semantic::{ExprType, SemanticError, TSemanticAnalyzer},
 };
 
 pub struct SemanticAnalyzer<'a> {
     context: Context<'a>,
+    current_return_type: Type,
 }
 
 pub struct Context<'a> {
@@ -84,6 +86,7 @@ impl<'a> SemanticAnalyzer<'a> {
     pub fn new() -> Self {
         Self {
             context: Context::new(),
+            current_return_type: Type::Int,
         }
     }
 
@@ -144,21 +147,34 @@ impl<'a> SemanticAnalyzer<'a> {
         match &statement.kind {
             StatementKind::Assignment(assignment) => self.analyze_assignment(assignment, line),
             StatementKind::Return { value } => {
-                if let Some(expression) = value {
-                    self.analyze_expression(expression, line)?;
-                }
-                Ok(())
+                let Some(expression) = value else {
+                    return Err(SemanticError::MissingReturnValue { line });
+                };
+                let actual = self.infer_expression_type(expression, line)?;
+                Self::require_type(
+                    ExprType::Scalar(self.current_return_type),
+                    actual,
+                    line,
+                )
             }
             StatementKind::Print { content } => match content {
                 PrintContent::StringConst(_) => Ok(()),
-                PrintContent::Expression(expression) => self.analyze_expression(expression, line),
+                PrintContent::Expression(expression) => {
+                    let actual = self.infer_expression_type(expression, line)?;
+                    match actual {
+                        ExprType::Scalar(Type::Int | Type::Char)
+                        | ExprType::Array(Type::Char) => Ok(()),
+                        _ => Err(SemanticError::InvalidPrintType { actual, line }),
+                    }
+                }
             },
             StatementKind::If {
                 condition,
                 then_branch,
                 else_branch,
             } => {
-                self.analyze_expression(condition, line)?;
+                let condition_type = self.infer_expression_type(condition, line)?;
+                Self::require_type(ExprType::Scalar(Type::Int), condition_type, line)?;
                 self.analyze_statement(then_branch)?;
                 if let Some(else_branch) = else_branch {
                     self.analyze_statement(else_branch)?;
@@ -175,7 +191,8 @@ impl<'a> SemanticAnalyzer<'a> {
                 body,
             } => {
                 self.analyze_assignment(initialization, line)?;
-                self.analyze_expression(condition, line)?;
+                let condition_type = self.infer_expression_type(condition, line)?;
+                Self::require_type(ExprType::Scalar(Type::Int), condition_type, line)?;
                 self.analyze_assignment(update, line)?;
                 self.analyze_statement(body)
             }
@@ -183,60 +200,158 @@ impl<'a> SemanticAnalyzer<'a> {
         }
     }
 
-    fn analyze_assignment(
-        &mut self,
-        assignment: &'a Assignment,
+    fn require_type(
+        expected: ExprType,
+        actual: ExprType,
         line: usize,
     ) -> Result<(), SemanticError> {
-        self.analyze_lvalue(&assignment.target, line)?;
-        self.analyze_expression(&assignment.value, line)
+        if actual == expected {
+            Ok(())
+        } else {
+            Err(SemanticError::TypeMismatch {
+                expected,
+                actual,
+                line,
+            })
+        }
     }
 
-    fn analyze_lvalue(&mut self, lvalue: &'a LValue, line: usize) -> Result<(), SemanticError> {
+    fn analyze_assignment(
+        &self,
+        assignment: &Assignment,
+        line: usize,
+    ) -> Result<(), SemanticError> {
+        let expected = self.infer_lvalue_type(&assignment.target, line)?;
+        let actual = self.infer_expression_type(&assignment.value, line)?;
+        Self::require_type(expected, actual, line)
+    }
+
+    fn infer_lvalue_type(
+        &self,
+        lvalue: &LValue,
+        line: usize,
+    ) -> Result<ExprType, SemanticError> {
         match lvalue {
-            LValue::Identifier(identifier) => self.resolve_variable(identifier, line),
+            LValue::Identifier(identifier) => {
+                let value_type = self.resolve_value_type(identifier, line)?;
+                match value_type {
+                    ExprType::Scalar(_) => Ok(value_type),
+                    ExprType::Array(_) => {
+                        Err(SemanticError::NotAssignable(identifier.clone()))
+                    }
+                }
+            }
             LValue::ArrayElement { array, index } => {
-                self.resolve_variable(array, line)?;
-                self.analyze_expression(index, line)
+                self.infer_array_access_type(array, index, line)
             }
         }
     }
 
-    fn analyze_expression(
-        &mut self,
-        expression: &'a Expression,
+    fn infer_array_access_type(
+        &self,
+        array: &Identifier,
+        index: &Expression,
         line: usize,
-    ) -> Result<(), SemanticError> {
+    ) -> Result<ExprType, SemanticError> {
+        let array_type = self.resolve_value_type(array, line)?;
+        let ExprType::Array(element_type) = array_type else {
+            return Err(SemanticError::NotAnArray(array.clone()));
+        };
+        let index_type = self.infer_expression_type(index, line)?;
+        Self::require_type(ExprType::Scalar(Type::Int), index_type, line)?;
+        Ok(ExprType::Scalar(element_type))
+    }
+
+    /// Infer an expression's type without mutating the syntax tree or symbol table.
+    /// MicroC deliberately performs no implicit int/char conversions.
+    fn infer_expression_type(
+        &self,
+        expression: &Expression,
+        line: usize,
+    ) -> Result<ExprType, SemanticError> {
+        let int_type = ExprType::Scalar(Type::Int);
         match expression {
-            Expression::Integer(_) | Expression::Char(_) => Ok(()),
-            Expression::Identifier(identifier) => self.resolve_variable(identifier, line),
-            Expression::Unary { expression, .. } => self.analyze_expression(expression, line),
-            Expression::Binary { left, right, .. } => {
-                self.analyze_expression(left, line)?;
-                self.analyze_expression(right, line)
+            Expression::Integer(_) => Ok(int_type),
+            Expression::Char(_) => Ok(ExprType::Scalar(Type::Char)),
+            Expression::Identifier(identifier) => self.resolve_value_type(identifier, line),
+            Expression::Unary { op, expression } => {
+                let operand_type = self.infer_expression_type(expression, line)?;
+                if operand_type == int_type {
+                    Ok(int_type)
+                } else {
+                    Err(SemanticError::InvalidUnaryOperand {
+                        operator: *op,
+                        actual: operand_type,
+                        line,
+                    })
+                }
+            }
+            Expression::Binary { left, op, right } => {
+                let left_type = self.infer_expression_type(left, line)?;
+                let right_type = self.infer_expression_type(right, line)?;
+                if left_type == int_type && right_type == int_type {
+                    Ok(int_type)
+                } else {
+                    Err(SemanticError::InvalidBinaryOperands {
+                        operator: *op,
+                        left: left_type,
+                        right: right_type,
+                        line,
+                    })
+                }
             }
             Expression::ArrayAccess { array, index } => {
-                self.resolve_variable(array, line)?;
-                self.analyze_expression(index, line)
+                self.infer_array_access_type(array, index, line)
             }
             Expression::Call { callee, arguments } => {
-                match self.context.resolve(callee.as_bytes()) {
-                    Some(Symbol::Function(_)) => {}
+                let function = match self.context.resolve(callee.as_bytes()) {
+                    Some(Symbol::Function(function)) => function,
                     Some(_) => return Err(SemanticError::NotCallable(callee.clone())),
                     None => return Err(SemanticError::UndeclaredFunction(callee.clone())),
+                };
+
+                // Validate nested expressions before arity: an undeclared variable
+                // in an argument must still be diagnosed precisely.
+                let argument_types = arguments
+                    .iter()
+                    .map(|argument| self.infer_expression_type(argument, line))
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                if arguments.len() != function.parameters.len() {
+                    return Err(SemanticError::ArgumentCountMismatch {
+                        callee: callee.clone(),
+                        expected: function.parameters.len(),
+                        actual: arguments.len(),
+                    });
                 }
 
-                for argument in arguments {
-                    self.analyze_expression(argument, line)?;
+                for (argument_type, parameter) in
+                    argument_types.into_iter().zip(&function.parameters)
+                {
+                    Self::require_type(
+                        ExprType::Scalar(parameter.data_type),
+                        argument_type,
+                        callee.line,
+                    )?;
                 }
-                Ok(())
+                Ok(ExprType::Scalar(function.return_type))
             }
         }
     }
 
-    fn resolve_variable(&self, identifier: &Identifier, line: usize) -> Result<(), SemanticError> {
+    fn resolve_value_type(
+        &self,
+        identifier: &Identifier,
+        line: usize,
+    ) -> Result<ExprType, SemanticError> {
         match self.context.resolve(identifier.as_bytes()) {
-            Some(Symbol::Parameter(_) | Symbol::Variable(_)) => Ok(()),
+            Some(Symbol::Parameter(parameter)) => Ok(ExprType::Scalar(parameter.data_type)),
+            Some(Symbol::Variable(VariableDeclaration::Scalar { data_type, .. })) => {
+                Ok(ExprType::Scalar(*data_type))
+            }
+            Some(Symbol::Variable(VariableDeclaration::Array { data_type, .. })) => {
+                Ok(ExprType::Array(*data_type))
+            }
             Some(Symbol::Function(_)) => Err(SemanticError::NotAVariable(identifier.clone())),
             None => Err(SemanticError::UndeclaredVariable(Identifier {
                 name: identifier.name.clone(),
@@ -246,7 +361,10 @@ impl<'a> SemanticAnalyzer<'a> {
     }
 
     fn analyze_function(&mut self, function: &'a GenericFunction) -> Result<(), SemanticError> {
-        self.with_scope(|analyzer| {
+        // Function return types form a nested semantic context, just like names.
+        // Restore it even when a declaration or statement fails.
+        let previous_return_type = mem::replace(&mut self.current_return_type, function.return_type);
+        let result = self.with_scope(|analyzer| {
             for parameter in &function.parameters {
                 analyzer
                     .context
@@ -254,7 +372,9 @@ impl<'a> SemanticAnalyzer<'a> {
             }
 
             analyzer.analyze_block(&function.body)
-        })
+        });
+        self.current_return_type = previous_return_type;
+        result
     }
 }
 
@@ -267,6 +387,7 @@ impl Default for SemanticAnalyzer<'_> {
 impl<'a> TSemanticAnalyzer<'a> for SemanticAnalyzer<'a> {
     fn analyze(&mut self, program: &'a Program) -> Result<(), SemanticError> {
         self.context = Context::new();
+        self.current_return_type = Type::Int;
 
         // Register every function before analyzing any body so forward calls and
         // recursion resolve through the enclosing scope.
@@ -295,7 +416,7 @@ mod tests {
                 Assignment, Block, LValue, Statement, StatementKind, Type, VariableDeclaration,
             },
         },
-        semantic::{SemanticError, TSemanticAnalyzer},
+        semantic::{ExprType, SemanticError, TSemanticAnalyzer},
     };
 
     fn identifier(name: &[u8], line: usize) -> Identifier {
@@ -368,6 +489,404 @@ mod tests {
             callee: identifier(name, line),
             arguments,
         }
+    }
+
+    fn char_scalar(name: &[u8], line: usize) -> VariableDeclaration {
+        VariableDeclaration::Scalar {
+            data_type: Type::Char,
+            name: identifier(name, line),
+        }
+    }
+
+    fn binary_add(left: Expression, right: Expression) -> Expression {
+        Expression::Binary {
+            left: Box::new(left),
+            op: BinaryOp::Add,
+            right: Box::new(right),
+        }
+    }
+
+    #[test]
+    fn infers_integer_and_character_literals_separately() {
+        let analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.infer_expression_type(&Expression::Integer(1), 1),
+            Ok(ExprType::Scalar(Type::Int))
+        );
+        assert_eq!(
+            analyzer.infer_expression_type(&Expression::Char(b'a'), 1),
+            Ok(ExprType::Scalar(Type::Char))
+        );
+    }
+
+    #[test]
+    fn rejects_mixed_integer_and_character_addition() {
+        let expression = binary_add(Expression::Integer(1), Expression::Char(b'a'));
+        let program = program(vec![], vec![return_expression(4, expression)]);
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::InvalidBinaryOperands {
+                operator: BinaryOp::Add,
+                left: ExprType::Scalar(Type::Int),
+                right: ExprType::Scalar(Type::Char),
+                line: 4,
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_character_arithmetic_without_implicit_promotions() {
+        let expression = binary_add(Expression::Char(b'a'), Expression::Char(b'b'));
+        let program = program(vec![], vec![return_expression(4, expression)]);
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::InvalidBinaryOperands {
+                operator: BinaryOp::Add,
+                left: ExprType::Scalar(Type::Char),
+                right: ExprType::Scalar(Type::Char),
+                line: 4,
+            })
+        );
+    }
+
+    #[test]
+    fn accepts_integer_arithmetic() {
+        let expression = binary_add(Expression::Integer(1), Expression::Integer(2));
+        let program = program(vec![], vec![return_expression(4, expression)]);
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(analyzer.analyze(&program), Ok(()));
+    }
+
+    #[test]
+    fn rejects_character_value_assigned_to_int() {
+        let program = program(
+            vec![scalar(b"value", 1)],
+            vec![assignment(
+                2,
+                LValue::Identifier(identifier(b"value", 2)),
+                Expression::Char(b'a'),
+            )],
+        );
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::TypeMismatch {
+                expected: ExprType::Scalar(Type::Int),
+                actual: ExprType::Scalar(Type::Char),
+                line: 2,
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_integer_value_assigned_to_char() {
+        let program = program(
+            vec![char_scalar(b"value", 1)],
+            vec![assignment(
+                2,
+                LValue::Identifier(identifier(b"value", 2)),
+                Expression::Integer(97),
+            )],
+        );
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::TypeMismatch {
+                expected: ExprType::Scalar(Type::Char),
+                actual: ExprType::Scalar(Type::Int),
+                line: 2,
+            })
+        );
+    }
+
+    #[test]
+    fn accepts_matching_character_assignment() {
+        let program = program(
+            vec![char_scalar(b"value", 1)],
+            vec![assignment(
+                2,
+                LValue::Identifier(identifier(b"value", 2)),
+                Expression::Char(b'a'),
+            )],
+        );
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(analyzer.analyze(&program), Ok(()));
+    }
+
+    #[test]
+    fn rejects_int_argument_to_char_parameter() {
+        let mut p = program(
+            vec![],
+            vec![return_expression(5, function_call(b"accept", 5, vec![Expression::Integer(97)]))],
+        );
+        let mut function = generic_function(b"accept", 1, vec![
+            return_expression(2, Expression::Integer(1))
+        ]);
+        function.parameters = vec![Parameter {
+            data_type: Type::Char,
+            name: identifier(b"value", 1),
+        }];
+        p.functions.push(function);
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&p),
+            Err(SemanticError::TypeMismatch {
+                expected: ExprType::Scalar(Type::Char),
+                actual: ExprType::Scalar(Type::Int),
+                line: 5,
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_char_argument_to_int_parameter() {
+        let mut p = program(
+            vec![],
+            vec![return_expression(5, function_call(b"accept", 5, vec![Expression::Char(b'a')]))],
+        );
+        let mut function = generic_function(b"accept", 1, vec![
+            return_expression(2, Expression::Integer(1))
+        ]);
+        function.parameters.push(parameter(b"value"));
+        p.functions.push(function);
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&p),
+            Err(SemanticError::TypeMismatch {
+                expected: ExprType::Scalar(Type::Int),
+                actual: ExprType::Scalar(Type::Char),
+                line: 5,
+            })
+        );
+    }
+
+    #[test]
+    fn accepts_char_argument_to_char_parameter() {
+        let mut p = program(
+            vec![],
+            vec![return_expression(5, function_call(b"accept", 5, vec![Expression::Char(b'a')]))],
+        );
+        let mut function = generic_function(b"accept", 1, vec![
+            return_expression(2, Expression::Integer(1))
+        ]);
+        function.parameters.push(Parameter {
+            data_type: Type::Char,
+            name: identifier(b"value", 1),
+        });
+        p.functions.push(function);
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(analyzer.analyze(&p), Ok(()));
+    }
+
+    #[test]
+    fn rejects_function_call_with_wrong_argument_count() {
+        let mut p = program(
+            vec![],
+            vec![return_expression(5, function_call(b"accept", 5, vec![]))],
+        );
+        let mut function = generic_function(b"accept", 1, vec![]);
+        function.parameters.push(parameter(b"value"));
+        p.functions.push(function);
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&p),
+            Err(SemanticError::ArgumentCountMismatch {
+                callee: identifier(b"accept", 5),
+                expected: 1,
+                actual: 0,
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_char_returned_from_int_function() {
+        let mut p = program(vec![], vec![]);
+        p.functions.push(generic_function(
+            b"wrong",
+            1,
+            vec![return_expression(3, Expression::Char(b'a'))],
+        ));
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&p),
+            Err(SemanticError::TypeMismatch {
+                expected: ExprType::Scalar(Type::Int),
+                actual: ExprType::Scalar(Type::Char),
+                line: 3,
+            })
+        );
+    }
+
+    #[test]
+    fn accepts_char_returned_from_char_function() {
+        let mut p = program(vec![], vec![]);
+        let mut f = generic_function(
+            b"character",
+            1,
+            vec![return_expression(3, Expression::Char(b'a'))],
+        );
+        f.return_type = Type::Char;
+        p.functions.push(f);
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(analyzer.analyze(&p), Ok(()));
+    }
+
+    #[test]
+    fn restores_main_return_type_after_checking_char_function() {
+        let mut p = program(vec![], vec![return_expression(8, Expression::Char(b'a'))]);
+        let mut f = generic_function(
+            b"character",
+            1,
+            vec![return_expression(3, Expression::Char(b'b'))],
+        );
+        f.return_type = Type::Char;
+        p.functions.push(f);
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&p),
+            Err(SemanticError::TypeMismatch {
+                expected: ExprType::Scalar(Type::Int),
+                actual: ExprType::Scalar(Type::Char),
+                line: 8,
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_character_array_index() {
+        let p = program(
+            vec![array(b"items", 1)],
+            vec![return_expression(
+                3,
+                Expression::ArrayAccess {
+                    array: identifier(b"items", 3),
+                    index: Box::new(Expression::Char(b'a')),
+                },
+            )],
+        );
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&p),
+            Err(SemanticError::TypeMismatch {
+                expected: ExprType::Scalar(Type::Int),
+                actual: ExprType::Scalar(Type::Char),
+                line: 3,
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_indexing_scalar_variable() {
+        let p = program(
+            vec![scalar(b"item", 1)],
+            vec![return_expression(
+                3,
+                Expression::ArrayAccess {
+                    array: identifier(b"item", 3),
+                    index: Box::new(Expression::Integer(0)),
+                },
+            )],
+        );
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&p),
+            Err(SemanticError::NotAnArray(identifier(b"item", 3)))
+        );
+    }
+
+    #[test]
+    fn rejects_array_in_arithmetic() {
+        let p = program(
+            vec![array(b"items", 1)],
+            vec![return_expression(
+                3,
+                binary_add(
+                    Expression::Identifier(identifier(b"items", 3)),
+                    Expression::Integer(2),
+                ),
+            )],
+        );
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&p),
+            Err(SemanticError::InvalidBinaryOperands {
+                operator: BinaryOp::Add,
+                left: ExprType::Array(Type::Int),
+                right: ExprType::Scalar(Type::Int),
+                line: 3,
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_assignment_to_an_entire_array() {
+        let p = program(
+            vec![array(b"items", 1)],
+            vec![assignment(
+                3,
+                LValue::Identifier(identifier(b"items", 3)),
+                Expression::Integer(42),
+            )],
+        );
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&p),
+            Err(SemanticError::NotAssignable(identifier(b"items", 3)))
+        );
+    }
+
+    #[test]
+    fn rejects_char_condition_without_conversion() {
+        let p = program(
+            vec![],
+            vec![Statement::new(
+                3,
+                StatementKind::If {
+                    condition: Expression::Char(b'a'),
+                    then_branch: Box::new(Statement::new(4, StatementKind::Empty)),
+                    else_branch: None,
+                },
+            )],
+        );
+        let mut analyzer = SemanticAnalyzer::new();
+        assert_eq!(
+            analyzer.analyze(&p),
+            Err(SemanticError::TypeMismatch {
+                expected: ExprType::Scalar(Type::Int),
+                actual: ExprType::Scalar(Type::Char),
+                line: 3,
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_missing_return_value() {
+        let p = program(
+            vec![],
+            vec![Statement::new(3, StatementKind::Return { value: None })],
+        );
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&p),
+            Err(SemanticError::MissingReturnValue { line: 3 })
+        );
     }
 
     #[test]
