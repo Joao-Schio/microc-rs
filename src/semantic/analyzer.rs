@@ -11,7 +11,8 @@ use crate::{
         statement::{
             Assignment, Block, LValue, PrintContent, Statement, StatementKind, VariableDeclaration,
         },
-    }, semantic::{SemanticError::{self, UndeclaredFunction}, TSemanticAnalyzer},
+    },
+    semantic::{SemanticError, TSemanticAnalyzer},
 };
 
 pub struct SemanticAnalyzer<'a> {
@@ -24,6 +25,7 @@ pub struct Context<'a> {
 }
 
 pub enum Symbol<'a> {
+    Function(&'a GenericFunction),
     Parameter(&'a Parameter),
     Variable(&'a VariableDeclaration),
 }
@@ -217,11 +219,13 @@ impl<'a> SemanticAnalyzer<'a> {
                 self.resolve_variable(array, line)?;
                 self.analyze_expression(index, line)
             }
-            Expression::Call { callee, arguments  } => {
-                let Some(_func) = self.context.resolve(&callee.name) else {
-                    return  Err(UndeclaredFunction(callee.clone()));
-                };
-    
+            Expression::Call { callee, arguments } => {
+                match self.context.resolve(callee.as_bytes()) {
+                    Some(Symbol::Function(_)) => {}
+                    Some(_) => return Err(SemanticError::NotCallable(callee.clone())),
+                    None => return Err(SemanticError::UndeclaredFunction(callee.clone())),
+                }
+
                 for argument in arguments {
                     self.analyze_expression(argument, line)?;
                 }
@@ -231,14 +235,16 @@ impl<'a> SemanticAnalyzer<'a> {
     }
 
     fn resolve_variable(&self, identifier: &Identifier, line: usize) -> Result<(), SemanticError> {
-        if self.context.resolve(identifier.as_bytes()).is_some() {
-            return Ok(());
+        match self.context.resolve(identifier.as_bytes()) {
+            Some(Symbol::Parameter(_) | Symbol::Variable(_)) => Ok(()),
+            Some(Symbol::Function(_)) => {
+                Err(SemanticError::NotAVariable(identifier.clone()))
+            }
+            None => Err(SemanticError::UndeclaredVariable(Identifier {
+                name: identifier.name.clone(),
+                line,
+            })),
         }
-
-        Err(SemanticError::UndeclaredVariable(Identifier {
-            name: identifier.name.clone(),
-            line,
-        }))
     }
 
     fn analyze_function(&mut self, function: &'a GenericFunction) -> Result<(), SemanticError> {
@@ -263,9 +269,18 @@ impl Default for SemanticAnalyzer<'_> {
 impl<'a> TSemanticAnalyzer<'a> for SemanticAnalyzer<'a> {
     fn analyze(&mut self, program: &'a Program) -> Result<(), SemanticError> {
         self.context = Context::new();
+
+        // Register every function before analyzing any body so forward calls and
+        // recursion resolve through the enclosing scope.
+        for function in &program.functions {
+            self.context
+                .declare(&function.name, Symbol::Function(function))?;
+        }
+
         for function in &program.functions {
             self.analyze_function(function)?;
         }
+
         self.with_scope(|analyzer| analyzer.analyze_block(&program.main.body))
     }
 }
