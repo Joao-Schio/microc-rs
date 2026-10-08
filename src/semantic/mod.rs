@@ -6,7 +6,9 @@ pub mod analyzer;
 pub enum SemanticError {
     UndeclaredVariable(Identifier),
     DuplicateDeclaration(Identifier),
-    UndeclaredFunction(Identifier)
+    UndeclaredFunction(Identifier),
+    NotCallable(Identifier),
+    NotAVariable(Identifier),
 }
 
 pub trait TSemanticAnalyzer<'a> {
