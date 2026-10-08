@@ -254,6 +254,9 @@ where
             if *self.context.current().token_type() == TokenType::Rparen {
                 break;
             }
+            if parameters.len() > 0 {
+                self.context.expect(TokenType::Comma)?;
+            }
             parameters.push(self.parse_parameter()?);
         }
         Ok(parameters)

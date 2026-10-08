@@ -459,7 +459,10 @@ impl<E: TExprParser> TStatementParser<E> for StubStatementParser {
         context: &mut ParserContext,
         _expr_parser: &mut E,
     ) -> Result<Statement, ParserError> {
-        Ok(Statement::new(context.current().line(), StatementKind::Empty))
+        Ok(Statement::new(
+            context.current().line(),
+            StatementKind::Empty,
+        ))
     }
 }
 
