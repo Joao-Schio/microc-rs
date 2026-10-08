@@ -1,10 +1,10 @@
-use crate::ast::expression::Expression;
+use crate::ast::{Identifier, expression::Expression};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LValue {
-    Identifier(Vec<u8>),
+    Identifier(Identifier),
     ArrayElement {
-        array: Vec<u8>,
+        array: Identifier,
         index: Box<Expression>,
     },
 }
@@ -15,7 +15,7 @@ pub enum PrintContent {
     Expression(Expression),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Type {
     Int,
     Char,
@@ -25,11 +25,11 @@ pub enum Type {
 pub enum VariableDeclaration {
     Scalar {
         data_type: Type,
-        name: Vec<u8>,
+        name: Identifier,
     },
     Array {
         data_type: Type,
-        name: Vec<u8>,
+        name: Identifier,
         length: i64,
     },
 }
@@ -47,7 +47,23 @@ pub struct Assignment {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Statement {
+pub struct Statement {
+    line: usize,
+    pub kind: StatementKind,
+}
+
+impl Statement {
+    pub fn new(line: usize, kind: StatementKind) -> Self {
+        Self { line, kind }
+    }
+
+    pub fn line(&self) -> usize {
+        self.line
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum StatementKind {
     Assignment(Assignment),
     Return {
         value: Option<Expression>,

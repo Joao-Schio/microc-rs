@@ -45,7 +45,10 @@ macro_rules! expression_parser_contract {
                     Token::new(TokenType::Eof, 1),
                 ];
 
-                assert_eq!(parse(tokens), Ok(Expression::Identifier(b"value".to_vec())));
+                assert_eq!(
+                    parse(tokens),
+                    Ok(Expression::Identifier(identifier!(b"value")))
+                );
             }
 
             #[test]
@@ -137,7 +140,7 @@ macro_rules! expression_parser_contract {
                         op: UnaryOp::Negate,
                         expression: Box::new(Expression::Unary {
                             op: UnaryOp::Not,
-                            expression: Box::new(Expression::Identifier(b"value".to_vec())),
+                            expression: Box::new(Expression::Identifier(identifier!(b"value"))),
                         }),
                     })
                 );
@@ -277,7 +280,7 @@ macro_rules! expression_parser_contract {
                 assert_eq!(
                     parse(tokens),
                     Ok(Expression::ArrayAccess {
-                        array: b"values".to_vec(),
+                        array: identifier!(b"values"),
                         index: Box::new(Expression::Binary {
                             left: Box::new(Expression::Integer(2)),
                             op: BinaryOp::Add,
@@ -318,7 +321,7 @@ macro_rules! expression_parser_contract {
                 assert_eq!(
                     parse(tokens),
                     Ok(Expression::Call {
-                        callee: b"foo".to_vec(),
+                        callee: identifier!(b"foo"),
                         arguments: vec![],
                     })
                 );
@@ -337,7 +340,7 @@ macro_rules! expression_parser_contract {
                 assert_eq!(
                     parse(tokens),
                     Ok(Expression::Call {
-                        callee: b"foo".to_vec(),
+                        callee: identifier!(b"foo"),
                         arguments: vec![Expression::Integer(1)],
                     })
                 );
@@ -360,7 +363,7 @@ macro_rules! expression_parser_contract {
                 assert_eq!(
                     parse(tokens),
                     Ok(Expression::Call {
-                        callee: b"foo".to_vec(),
+                        callee: identifier!(b"foo"),
                         arguments: vec![
                             Expression::Integer(1),
                             Expression::Integer(2),
@@ -385,7 +388,7 @@ macro_rules! expression_parser_contract {
                 assert_eq!(
                     parse(tokens),
                     Ok(Expression::Call {
-                        callee: b"foo".to_vec(),
+                        callee: identifier!(b"foo"),
                         arguments: vec![Expression::Binary {
                             left: Box::new(Expression::Integer(1)),
                             op: BinaryOp::Add,
@@ -411,9 +414,9 @@ macro_rules! expression_parser_contract {
                 assert_eq!(
                     parse(tokens),
                     Ok(Expression::Call {
-                        callee: b"outer".to_vec(),
+                        callee: identifier!(b"outer"),
                         arguments: vec![Expression::Call {
-                            callee: b"inner".to_vec(),
+                            callee: identifier!(b"inner"),
                             arguments: vec![Expression::Integer(1)],
                         }],
                     })
@@ -475,7 +478,7 @@ macro_rules! expression_parser_contract {
                     parse(tokens),
                     Ok(Expression::Binary {
                         left: Box::new(Expression::Call {
-                            callee: b"foo".to_vec(),
+                            callee: identifier!(b"foo"),
                             arguments: vec![],
                         }),
                         op: BinaryOp::Add,

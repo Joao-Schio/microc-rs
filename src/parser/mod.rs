@@ -5,9 +5,10 @@ use std::{error::Error, fmt, iter::Peekable, vec::IntoIter};
 
 use crate::{
     ast::{
+        Identifier,
         expression::Expression,
         program::{GenericFunction, MainFunction, Parameter, Program},
-        statement::{Statement, Type, VariableDeclaration},
+        statement::{Statement, StatementKind, Type, VariableDeclaration},
     },
     token::{Token, TokenType},
 };
@@ -131,9 +132,10 @@ impl<E: TExprParser> Parser<E, StatementParser> {
     }
 
     pub fn parse_block(&mut self) -> Result<Statement, ParserError> {
+        let line = self.context.current().line();
         self.statement_parser
             .parse_block(&mut self.context, &mut self.expr_parser)
-            .map(Statement::Block)
+            .map(|block| Statement::new(line, StatementKind::Block(block)))
     }
 }
 
@@ -177,14 +179,15 @@ where
         }
     }
 
-    fn parse_name(&mut self) -> Result<Vec<u8>, ParserError> {
+    fn parse_name(&mut self) -> Result<Identifier, ParserError> {
         let token = self
             .context
             .expect_matching("Id", |found| matches!(found, TokenType::Id(_)))?;
+        let line = token.line();
         let TokenType::Id(identifier) = token.into_type() else {
             unreachable!("identifier predicate must only accept TokenType::Id")
         };
-        Ok(identifier)
+        Ok(Identifier::new(identifier, line))
     }
 
     fn parse_generic_function(
@@ -250,6 +253,9 @@ where
         loop {
             if *self.context.current().token_type() == TokenType::Rparen {
                 break;
+            }
+            if parameters.len() > 0 {
+                self.context.expect(TokenType::Comma)?;
             }
             parameters.push(self.parse_parameter()?);
         }
