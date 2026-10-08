@@ -4,12 +4,11 @@ use crate::{
     ast::{
         Identifier,
         expression::Expression,
-        program::{Parameter, Program},
+        program::{GenericFunction, Parameter, Program},
         statement::{
             Assignment, Block, LValue, PrintContent, Statement, StatementKind, VariableDeclaration,
         },
-    },
-    semantic::{SemanticError, TSemanticAnalyzer},
+    }, semantic::{SemanticError, TSemanticAnalyzer, analyzer},
 };
 
 pub struct SemanticAnalyzer<'a> {
@@ -221,6 +220,18 @@ impl<'a> SemanticAnalyzer<'a> {
             line,
         })
     }
+
+    fn analyze_function(&mut self, function: &'a GenericFunction) -> Result<(), SemanticError> {
+        self.with_scope(|analyzer| {
+            for parameter in &function.parameters {
+                analyzer
+                    .context
+                    .declare(parameter.name.as_bytes(), Symbol::Parameter(parameter));
+            }
+
+            analyzer.analyze_block(&function.body)
+        })
+    }
 }
 
 impl Default for SemanticAnalyzer<'_> {
@@ -232,7 +243,12 @@ impl Default for SemanticAnalyzer<'_> {
 impl<'a> TSemanticAnalyzer<'a> for SemanticAnalyzer<'a> {
     fn analyze(&mut self, program: &'a Program) -> Result<(), SemanticError> {
         self.context = Context::new();
-        self.analyze_block(&program.main.body)
+        for function in &program.functions {
+            self.analyze_function(function)?;
+        }
+        self.with_scope(|analyzer| {
+            analyzer.analyze_block(&program.main.body)
+        })
     }
 }
 
@@ -243,7 +259,7 @@ mod tests {
         ast::{
             Identifier,
             expression::{BinaryOp, Expression},
-            program::{MainFunction, Parameter, Program},
+            program::{GenericFunction, MainFunction, Parameter, Program},
             statement::{
                 Assignment, Block, LValue, Statement, StatementKind, Type, VariableDeclaration,
             },
@@ -510,7 +526,8 @@ mod tests {
         let program = program(vec![scalar(b"outer", 1)], vec![nested]);
 
         let mut analyzer = SemanticAnalyzer::new();
-        assert!(analyzer.analyze(&program).is_err());
+        assert!(analyzer.analyze_block(&program.main.body).is_err());
+            
         assert!(analyzer.context.resolve(b"outer").is_some());
         assert!(analyzer.context.resolve(b"inner").is_none());
     }
@@ -531,5 +548,75 @@ mod tests {
 
         let mut analyzer = SemanticAnalyzer::new();
         assert_eq!(analyzer.analyze(&program), Ok(()));
+    }
+
+    #[test]
+    fn function_parameters_are_visible_inside_function_body() {
+        let program = Program {
+            functions: vec![GenericFunction {
+                return_type: Type::Int,
+                name: identifier(b"add", 1),
+                parameters: vec![parameter(b"a"), parameter(b"b")],
+                body: Block {
+                    declarations: vec![],
+                    statements: vec![Statement::new(
+                        2,
+                        StatementKind::Return {
+                            value: Some(Expression::Binary {
+                                left: Box::new(Expression::Identifier(identifier(b"a", 2))),
+                                op: BinaryOp::Add,
+                                right: Box::new(Expression::Identifier(identifier(b"b", 2))),
+                            }),
+                        },
+                    )],
+                },
+            }],
+            main: MainFunction {
+                body: Block {
+                    declarations: vec![],
+                    statements: vec![],
+                },
+            },
+        };
+
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(analyzer.analyze(&program), Ok(()));
+    }
+
+    #[test]
+    fn rejects_undeclared_variable_inside_generic_function() {
+        let program = Program {
+            functions: vec![GenericFunction {
+                return_type: Type::Int,
+                name: identifier(b"calculate", 1),
+                parameters: vec![parameter(b"x")],
+                body: Block {
+                    declarations: vec![],
+                    statements: vec![Statement::new(
+                        3,
+                        StatementKind::Return {
+                            value: Some(Expression::Identifier(identifier(b"missing", 3))),
+                        },
+                    )],
+                },
+            }],
+            main: MainFunction {
+                body: Block {
+                    declarations: vec![],
+                    statements: vec![],
+                },
+            },
+        };
+
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::UndeclaredVariable {
+                name: b"missing".to_vec(),
+                line: 3,
+            })
+        );
     }
 }
