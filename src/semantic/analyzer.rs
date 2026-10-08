@@ -151,19 +151,16 @@ impl<'a> SemanticAnalyzer<'a> {
                     return Err(SemanticError::MissingReturnValue { line });
                 };
                 let actual = self.infer_expression_type(expression, line)?;
-                Self::require_type(
-                    ExprType::Scalar(self.current_return_type),
-                    actual,
-                    line,
-                )
+                Self::require_type(ExprType::Scalar(self.current_return_type), actual, line)
             }
             StatementKind::Print { content } => match content {
                 PrintContent::StringConst(_) => Ok(()),
                 PrintContent::Expression(expression) => {
                     let actual = self.infer_expression_type(expression, line)?;
                     match actual {
-                        ExprType::Scalar(Type::Int | Type::Char)
-                        | ExprType::Array(Type::Char) => Ok(()),
+                        ExprType::Scalar(Type::Int | Type::Char) | ExprType::Array(Type::Char) => {
+                            Ok(())
+                        }
                         _ => Err(SemanticError::InvalidPrintType { actual, line }),
                     }
                 }
@@ -226,19 +223,13 @@ impl<'a> SemanticAnalyzer<'a> {
         Self::require_type(expected, actual, line)
     }
 
-    fn infer_lvalue_type(
-        &self,
-        lvalue: &LValue,
-        line: usize,
-    ) -> Result<ExprType, SemanticError> {
+    fn infer_lvalue_type(&self, lvalue: &LValue, line: usize) -> Result<ExprType, SemanticError> {
         match lvalue {
             LValue::Identifier(identifier) => {
                 let value_type = self.resolve_value_type(identifier, line)?;
                 match value_type {
                     ExprType::Scalar(_) => Ok(value_type),
-                    ExprType::Array(_) => {
-                        Err(SemanticError::NotAssignable(identifier.clone()))
-                    }
+                    ExprType::Array(_) => Err(SemanticError::NotAssignable(identifier.clone())),
                 }
             }
             LValue::ArrayElement { array, index } => {
@@ -363,7 +354,8 @@ impl<'a> SemanticAnalyzer<'a> {
     fn analyze_function(&mut self, function: &'a GenericFunction) -> Result<(), SemanticError> {
         // Function return types form a nested semantic context, just like names.
         // Restore it even when a declaration or statement fails.
-        let previous_return_type = mem::replace(&mut self.current_return_type, function.return_type);
+        let previous_return_type =
+            mem::replace(&mut self.current_return_type, function.return_type);
         let result = self.with_scope(|analyzer| {
             for parameter in &function.parameters {
                 analyzer
@@ -464,11 +456,7 @@ mod tests {
         }
     }
 
-    fn generic_function(
-        name: &[u8],
-        line: usize,
-        statements: Vec<Statement>,
-    ) -> GenericFunction {
+    fn generic_function(name: &[u8], line: usize, statements: Vec<Statement>) -> GenericFunction {
         GenericFunction {
             return_type: Type::Int,
             name: identifier(name, line),
@@ -626,11 +614,16 @@ mod tests {
     fn rejects_int_argument_to_char_parameter() {
         let mut p = program(
             vec![],
-            vec![return_expression(5, function_call(b"accept", 5, vec![Expression::Integer(97)]))],
+            vec![return_expression(
+                5,
+                function_call(b"accept", 5, vec![Expression::Integer(97)]),
+            )],
         );
-        let mut function = generic_function(b"accept", 1, vec![
-            return_expression(2, Expression::Integer(1))
-        ]);
+        let mut function = generic_function(
+            b"accept",
+            1,
+            vec![return_expression(2, Expression::Integer(1))],
+        );
         function.parameters = vec![Parameter {
             data_type: Type::Char,
             name: identifier(b"value", 1),
@@ -652,11 +645,16 @@ mod tests {
     fn rejects_char_argument_to_int_parameter() {
         let mut p = program(
             vec![],
-            vec![return_expression(5, function_call(b"accept", 5, vec![Expression::Char(b'a')]))],
+            vec![return_expression(
+                5,
+                function_call(b"accept", 5, vec![Expression::Char(b'a')]),
+            )],
         );
-        let mut function = generic_function(b"accept", 1, vec![
-            return_expression(2, Expression::Integer(1))
-        ]);
+        let mut function = generic_function(
+            b"accept",
+            1,
+            vec![return_expression(2, Expression::Integer(1))],
+        );
         function.parameters.push(parameter(b"value"));
         p.functions.push(function);
         let mut analyzer = SemanticAnalyzer::new();
@@ -675,11 +673,16 @@ mod tests {
     fn accepts_char_argument_to_char_parameter() {
         let mut p = program(
             vec![],
-            vec![return_expression(5, function_call(b"accept", 5, vec![Expression::Char(b'a')]))],
+            vec![return_expression(
+                5,
+                function_call(b"accept", 5, vec![Expression::Char(b'a')]),
+            )],
         );
-        let mut function = generic_function(b"accept", 1, vec![
-            return_expression(2, Expression::Integer(1))
-        ]);
+        let mut function = generic_function(
+            b"accept",
+            1,
+            vec![return_expression(2, Expression::Integer(1))],
+        );
         function.parameters.push(Parameter {
             data_type: Type::Char,
             name: identifier(b"value", 1),
@@ -963,7 +966,9 @@ mod tests {
         let mut analyzer = SemanticAnalyzer::new();
         assert_eq!(
             analyzer.analyze(&program),
-            Err(SemanticError::DuplicateDeclaration(identifier(b"helper", 5)))
+            Err(SemanticError::DuplicateDeclaration(identifier(
+                b"helper", 5
+            )))
         );
     }
 
@@ -1008,7 +1013,9 @@ mod tests {
                 Expression::Identifier(identifier(b"helper", 5)),
             )],
         );
-        program.functions.push(generic_function(b"helper", 1, vec![]));
+        program
+            .functions
+            .push(generic_function(b"helper", 1, vec![]));
 
         let mut analyzer = SemanticAnalyzer::new();
         assert_eq!(
@@ -1023,7 +1030,9 @@ mod tests {
             vec![scalar(b"helper", 3)],
             vec![return_expression(4, function_call(b"helper", 4, vec![]))],
         );
-        program.functions.push(generic_function(b"helper", 1, vec![]));
+        program
+            .functions
+            .push(generic_function(b"helper", 1, vec![]));
 
         let mut analyzer = SemanticAnalyzer::new();
         assert_eq!(
@@ -1045,7 +1054,9 @@ mod tests {
                 ),
             )],
         );
-        program.functions.push(generic_function(b"helper", 1, vec![]));
+        program
+            .functions
+            .push(generic_function(b"helper", 1, vec![]));
 
         let mut analyzer = SemanticAnalyzer::new();
         assert_eq!(
