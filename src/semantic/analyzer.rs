@@ -1,4 +1,7 @@
-use std::{collections::{hash_map::Entry, HashMap}, mem};
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    mem,
+};
 
 use crate::{
     ast::{
@@ -8,8 +11,7 @@ use crate::{
         statement::{
             Assignment, Block, LValue, PrintContent, Statement, StatementKind, VariableDeclaration,
         },
-    },
-    semantic::{SemanticError, TSemanticAnalyzer},
+    }, semantic::{SemanticError::{self, UndeclaredFunction}, TSemanticAnalyzer},
 };
 
 pub struct SemanticAnalyzer<'a> {
@@ -130,7 +132,8 @@ impl<'a> SemanticAnalyzer<'a> {
             }
         };
 
-        self.context.declare(identifier, Symbol::Variable(declaration))
+        self.context
+            .declare(identifier, Symbol::Variable(declaration))
     }
 
     fn analyze_statement(&mut self, statement: &'a Statement) -> Result<(), SemanticError> {
@@ -214,7 +217,11 @@ impl<'a> SemanticAnalyzer<'a> {
                 self.resolve_variable(array, line)?;
                 self.analyze_expression(index, line)
             }
-            Expression::Call { arguments, .. } => {
+            Expression::Call { callee, arguments  } => {
+                let Some(_func) = self.context.resolve(&callee.name) else {
+                    return  Err(UndeclaredFunction(callee.clone()));
+                };
+    
                 for argument in arguments {
                     self.analyze_expression(argument, line)?;
                 }
@@ -327,7 +334,8 @@ mod tests {
     fn resolves_symbol_from_current_context() {
         let parameter = parameter(b"value");
         let mut context = Context::new();
-        context.declare(&parameter.name, Symbol::Parameter(&parameter))
+        context
+            .declare(&parameter.name, Symbol::Parameter(&parameter))
             .expect("unique declaration should succeed");
 
         match context.resolve(b"value") {
@@ -340,7 +348,8 @@ mod tests {
     fn resolves_symbol_from_parent_context() {
         let parameter = parameter(b"value");
         let mut parent = Context::new();
-        parent.declare(&parameter.name, Symbol::Parameter(&parameter))
+        parent
+            .declare(&parameter.name, Symbol::Parameter(&parameter))
             .expect("unique declaration should succeed");
         let context = Context::with_parent(parent);
 
@@ -355,10 +364,12 @@ mod tests {
         let outer = parameter(b"value");
         let inner = parameter(b"value");
         let mut parent = Context::new();
-        parent.declare(&outer.name, Symbol::Parameter(&outer))
+        parent
+            .declare(&outer.name, Symbol::Parameter(&outer))
             .expect("unique declaration should succeed");
         let mut context = Context::with_parent(parent);
-        context.declare(&inner.name, Symbol::Parameter(&inner))
+        context
+            .declare(&inner.name, Symbol::Parameter(&inner))
             .expect("unique declaration should succeed");
 
         match context.resolve(b"value") {
@@ -677,10 +688,18 @@ mod tests {
     fn duplicate_declaration_preserves_original_symbol() {
         let original = scalar(b"value", 1);
         let duplicate = scalar(b"value", 4);
-        let VariableDeclaration::Scalar { name: original_name, .. } = &original else {
+        let VariableDeclaration::Scalar {
+            name: original_name,
+            ..
+        } = &original
+        else {
             unreachable!()
         };
-        let VariableDeclaration::Scalar { name: duplicate_name, .. } = &duplicate else {
+        let VariableDeclaration::Scalar {
+            name: duplicate_name,
+            ..
+        } = &duplicate
+        else {
             unreachable!()
         };
 
@@ -820,4 +839,26 @@ mod tests {
         assert_eq!(analyzer.analyze(&program), Ok(()));
     }
 
+    #[test]
+    fn rejects_call_to_undeclared_function() {
+        let program = program(
+            vec![],
+            vec![Statement::new(
+                7,
+                StatementKind::Return {
+                    value: Some(Expression::Call {
+                        callee: identifier(b"missing", 7),
+                        arguments: vec![Expression::Integer(42)],
+                    }),
+                },
+            )],
+        );
+
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::UndeclaredFunction(identifier(b"missing", 7)))
+        );
+    }
 }
