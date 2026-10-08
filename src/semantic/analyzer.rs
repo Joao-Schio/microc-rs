@@ -41,8 +41,20 @@ impl<'a> Context<'a> {
         }
     }
 
-    pub fn declare(&mut self, name: &'a [u8], symbol: Symbol<'a>) -> Option<Symbol<'a>> {
-        self.symbols.insert(name, symbol)
+    pub fn declare(&mut self,  variable: &'a VariableDeclaration, symbol: Symbol<'a>) -> Result<Option<Symbol<'a>>, SemanticError> {
+        let name = match variable {
+            VariableDeclaration::Array { name, ..} | VariableDeclaration::Scalar { name, .. }=> {
+                name
+            }
+        };
+        match self.symbols.get(name.name.as_slice()) {
+            None => {
+                Ok(self.symbols.insert(name.name.as_ref(), symbol))
+            },
+            Some(_) => {
+                Err(SemanticError::DuplicateDeclaration(name.clone()))
+            }
+        }
     }
 
     pub fn resolve(&self, name: &[u8]) -> Option<&Symbol<'a>> {
@@ -111,14 +123,8 @@ impl<'a> SemanticAnalyzer<'a> {
     }
 
     fn declare_variable(&mut self, declaration: &'a VariableDeclaration) {
-        let name = match declaration {
-            VariableDeclaration::Scalar { name, .. } | VariableDeclaration::Array { name, .. } => {
-                name
-            }
-        };
-
         self.context
-            .declare(name.as_bytes(), Symbol::Variable(declaration));
+            .declare(declaration, Symbol::Variable(declaration));
     }
 
     fn analyze_statement(&mut self, statement: &'a Statement) -> Result<(), SemanticError> {
@@ -216,10 +222,10 @@ impl<'a> SemanticAnalyzer<'a> {
             return Ok(());
         }
 
-        Err(SemanticError::UndeclaredVariable {
+        Err(SemanticError::UndeclaredVariable(Identifier {
             name: identifier.name.clone(),
             line,
-        })
+        }))
     }
 
     fn analyze_function(&mut self, function: &'a GenericFunction) -> Result<(), SemanticError> {
@@ -402,10 +408,10 @@ mod tests {
         let mut analyzer = SemanticAnalyzer::new();
         assert_eq!(
             analyzer.analyze(&program),
-            Err(SemanticError::UndeclaredVariable {
+            Err(SemanticError::UndeclaredVariable(Identifier {
                 name: b"missing".to_vec(),
                 line: 7,
-            })
+            }))
         );
     }
 
@@ -423,10 +429,10 @@ mod tests {
         let mut analyzer = SemanticAnalyzer::new();
         assert_eq!(
             analyzer.analyze(&program),
-            Err(SemanticError::UndeclaredVariable {
+            Err(SemanticError::UndeclaredVariable(Identifier {
                 name: b"missing".to_vec(),
                 line: 11,
-            })
+            }))
         );
     }
 
@@ -448,10 +454,10 @@ mod tests {
         let mut analyzer = SemanticAnalyzer::new();
         assert_eq!(
             analyzer.analyze(&program),
-            Err(SemanticError::UndeclaredVariable {
+            Err(SemanticError::UndeclaredVariable(Identifier {
                 name: b"missing".to_vec(),
                 line: 5,
-            })
+            }))
         );
     }
 
@@ -502,10 +508,10 @@ mod tests {
         let mut analyzer = SemanticAnalyzer::new();
         assert_eq!(
             analyzer.analyze(&program),
-            Err(SemanticError::UndeclaredVariable {
+            Err(SemanticError::UndeclaredVariable(Identifier {
                 name: b"inner".to_vec(),
                 line: 9,
-            })
+            }))
         );
     }
 
@@ -545,10 +551,10 @@ mod tests {
 
         assert_eq!(
             analyzer.analyze(&program),
-            Err(SemanticError::UndeclaredVariable {
+            Err(SemanticError::UndeclaredVariable(Identifier {
                 name: b"missing".to_vec(),
                 line: 2,
-            })
+            }))
         );
         assert!(analyzer.context.resolve(b"outer").is_none());
     }
@@ -634,10 +640,25 @@ mod tests {
 
         assert_eq!(
             analyzer.analyze(&program),
-            Err(SemanticError::UndeclaredVariable {
+            Err(SemanticError::UndeclaredVariable(Identifier {
                 name: b"missing".to_vec(),
                 line: 3,
-            })
+            }))
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_variable_declaration_in_same_scope() {
+        let program = program(vec![scalar(b"value", 1), scalar(b"value", 3)], vec![]);
+
+        let mut analyzer = SemanticAnalyzer::new();
+
+        assert_eq!(
+            analyzer.analyze(&program),
+            Err(SemanticError::DuplicateDeclaration(Identifier {
+                name: b"value".to_vec(),
+                line: 3,
+            }))
         );
     }
 }

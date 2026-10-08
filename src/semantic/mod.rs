@@ -1,10 +1,11 @@
-use crate::ast::program::Program;
+use crate::ast::{Identifier, program::Program};
 
 pub mod analyzer;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum SemanticError {
-    UndeclaredVariable { name: Vec<u8>, line: usize },
+    UndeclaredVariable(Identifier),
+    DuplicateDeclaration(Identifier),
 }
 
 pub trait TSemanticAnalyzer<'a> {
