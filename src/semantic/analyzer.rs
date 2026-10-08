@@ -8,7 +8,8 @@ use crate::{
         statement::{
             Assignment, Block, LValue, PrintContent, Statement, StatementKind, VariableDeclaration,
         },
-    }, semantic::{SemanticError, TSemanticAnalyzer, analyzer},
+    },
+    semantic::{SemanticError, TSemanticAnalyzer},
 };
 
 pub struct SemanticAnalyzer<'a> {
@@ -246,9 +247,7 @@ impl<'a> TSemanticAnalyzer<'a> for SemanticAnalyzer<'a> {
         for function in &program.functions {
             self.analyze_function(function)?;
         }
-        self.with_scope(|analyzer| {
-            analyzer.analyze_block(&program.main.body)
-        })
+        self.with_scope(|analyzer| analyzer.analyze_block(&program.main.body))
     }
 }
 
