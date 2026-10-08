@@ -237,9 +237,7 @@ impl<'a> SemanticAnalyzer<'a> {
     fn resolve_variable(&self, identifier: &Identifier, line: usize) -> Result<(), SemanticError> {
         match self.context.resolve(identifier.as_bytes()) {
             Some(Symbol::Parameter(_) | Symbol::Variable(_)) => Ok(()),
-            Some(Symbol::Function(_)) => {
-                Err(SemanticError::NotAVariable(identifier.clone()))
-            }
+            Some(Symbol::Function(_)) => Err(SemanticError::NotAVariable(identifier.clone())),
             None => Err(SemanticError::UndeclaredVariable(Identifier {
                 name: identifier.name.clone(),
                 line,
@@ -345,7 +343,11 @@ mod tests {
         }
     }
 
-    fn generic_function(name: &[u8], line: usize, statements: Vec<Statement>) -> GenericFunction {
+    fn generic_function(
+        name: &[u8],
+        line: usize,
+        statements: Vec<Statement>,
+    ) -> GenericFunction {
         GenericFunction {
             return_type: Type::Int,
             name: identifier(name, line),
