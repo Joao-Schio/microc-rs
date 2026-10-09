@@ -31,7 +31,7 @@ macro_rules! semantic_analyzer_contract {
     ($module:ident, $make_analyzer:path, { $($test:item)* }) => {
         mod $module {
             use super::*;
-
+            use crate::semantic::TSemanticAnalyzer;
             fn make_analyzer<'a>() -> impl crate::semantic::TSemanticAnalyzer<'a> {
                 ($make_analyzer)()
             }
