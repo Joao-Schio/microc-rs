@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 
 mod ast;
+mod frontend;
 mod frontend_error;
 mod lexer;
 mod parser;
@@ -10,7 +11,6 @@ mod semantic;
 #[cfg(test)]
 mod tests;
 mod token;
-mod frontend;
 
 fn main() {
     println!("Hello, world!");
