@@ -3,7 +3,6 @@ use crate::{
     ast::{
         Identifier,
         expression::Expression,
-        program::Parameter,
         statement::{Block, LValue, Statement, StatementKind, Type, VariableDeclaration},
     },
     semantic::{ExprType, SemanticError, TSemanticAnalyzer},
