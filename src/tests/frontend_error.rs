@@ -60,8 +60,7 @@ fn semantic_error_displays_operator_diagnostics() {
 
 #[test]
 fn frontend_error_wraps_scanner_error_and_exposes_source() {
-    let error: FrontendError =
-        ScannerError::Io(std::io::Error::other("read failed")).into();
+    let error: FrontendError = ScannerError::Io(std::io::Error::other("read failed")).into();
 
     assert!(matches!(&error, FrontendError::Scanner(_)));
     assert_eq!(error.to_string(), "scanner I/O error: read failed");
