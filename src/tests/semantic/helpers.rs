@@ -38,7 +38,10 @@ pub(crate) fn assignment(line: usize, target: LValue, value: Expression) -> Stat
     )
 }
 
-pub(crate) fn program(declarations: Vec<VariableDeclaration>, statements: Vec<Statement>) -> Program {
+pub(crate) fn program(
+    declarations: Vec<VariableDeclaration>,
+    statements: Vec<Statement>,
+) -> Program {
     Program {
         functions: vec![],
         main: MainFunction {
@@ -50,7 +53,11 @@ pub(crate) fn program(declarations: Vec<VariableDeclaration>, statements: Vec<St
     }
 }
 
-pub(crate) fn generic_function(name: &[u8], line: usize, statements: Vec<Statement>) -> GenericFunction {
+pub(crate) fn generic_function(
+    name: &[u8],
+    line: usize,
+    statements: Vec<Statement>,
+) -> GenericFunction {
     GenericFunction {
         return_type: Type::Int,
         name: identifier(name, line),
