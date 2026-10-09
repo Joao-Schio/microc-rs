@@ -2,6 +2,7 @@
 mod contracts;
 
 mod comments;
+mod frontend_error;
 mod helpers;
 mod lexer;
 mod numeric;
