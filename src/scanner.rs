@@ -46,7 +46,7 @@ pub struct Scanner<R: Read> {
 }
 
 impl<R: Read> Scanner<R> {
-    fn new(reader: R) -> io::Result<Self> {
+    pub fn new(reader: R) -> io::Result<Self> {
         let mut reader = BufReader::new(reader);
         let look_ahead = Self::read_next(&mut reader)?;
         Ok(Self {
