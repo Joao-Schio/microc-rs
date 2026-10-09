@@ -13,7 +13,7 @@ This project started as an implementation of the lexical analyzer described in t
 
 The goal is not to mechanically translate the reference C implementation into Rust. Instead, MicroC-RS aims to preserve the language semantics while designing the compiler around Rust's type system, ownership model, and modern software-engineering practices.
 
-> **Status:** Frontend components are implemented and tested individually: scanner, lexer, parser, AST, and semantic analysis (including strict type checking). The next milestone is wiring these phases together so MicroC-RS can validate complete source files. The CLI and LLVM IR backend are not implemented yet.
+> **Status:** The scanner, lexer, parser, AST, and semantic analyzer are connected through a tested frontend. The CLI now generates LLVM IR for a small initial subset: `main`, integer literals, addition, subtraction, multiplication, unary negation, returns, empty statements, and nested blocks. Other V1 language features are still being implemented.
 
 ## Goals
 
@@ -138,7 +138,7 @@ AST (syntax)
 Semantic Analysis (symbol resolution and type checking)
   |
   v
-LLVM IR Generation [planned]
+LLVM IR Generation [partial]
   |
   v
 LLVM Toolchain [planned]
@@ -147,7 +147,7 @@ LLVM Toolchain [planned]
 Native Executable [planned]
 ```
 
-The scanner, lexer, parser, and semantic analyzer are implemented and tested, but **they are not yet connected by an end-to-end frontend entry point**. The AST preserves source-level syntax; semantic analysis infers types using the available symbols rather than storing inferred types in every expression node.
+The scanner, lexer, parser, and semantic analyzer are connected through `frontend::analyze_source` and validated by end-to-end frontend tests. The AST preserves source-level syntax; semantic analysis infers types using the available symbols rather than storing inferred types in every expression node.
 
 Compiler phases communicate through typed in-memory structures rather than intermediate files. Token dumps, AST output, semantic diagnostics, and generated LLVM IR may eventually be exposed through the CLI for inspection; they are not used as file-based communication mechanisms between phases.
 
@@ -163,6 +163,11 @@ src/
 │   ├── expression.rs
 │   ├── mod.rs
 │   ├── program.rs
+│   └── statement.rs
+├── codegen/
+│   ├── context.rs
+│   ├── expression.rs
+│   ├── mod.rs
 │   └── statement.rs
 ├── parser/
 │   ├── expression.rs
@@ -184,6 +189,7 @@ src/
 │   │   ├── mod.rs
 │   │   ├── program.rs
 │   │   └── statement.rs
+│   ├── codegen.rs
 │   ├── comments.rs
 │   ├── contracts.rs
 │   ├── helpers.rs
@@ -193,6 +199,8 @@ src/
 │   ├── reserved_words.rs
 │   ├── token_contract.rs
 │   └── tokenize.rs
+├── frontend.rs
+├── frontend_error.rs
 ├── lexer.rs
 ├── main.rs
 ├── scanner.rs
@@ -257,7 +265,7 @@ Expression types are **inferred during semantic analysis**, not baked into `ast:
 
 **MicroC-RS V1 deliberately uses strict `int` and `char` typing.** Arithmetic operands must be integers, and assignments, function arguments, and return values must match their declared types. There are **no implicit conversions** between `int` and `char`, and casts are not part of the V1 grammar. For example, `1 + 'a'` is invalid when used inside an otherwise valid expression.
 
-Semantic failures are represented as typed `SemanticError` values. No LLVM IR is generated yet; this phase currently validates the parsed AST without lowering it.
+Semantic failures are represented as typed `SemanticError` values. The LLVM backend consumes the frontend-validated AST and explicitly rejects constructs it cannot yet lower.
 
 ## Testing
 
@@ -270,7 +278,7 @@ The testing strategy favors:
 - regression tests for parser cursor and delimiter ownership
 - end-to-end tests using complete MicroC source files when the frontend phases are connected
 
-The parser tests verify both AST output and token consumption. Semantic regression tests exercise symbol resolution, scope restoration, forward and recursive function calls, strict type compatibility, and invalid array usage. Complete source-to-semantic-validation tests are the next testing milestone.
+The parser tests verify both AST output and token consumption. Semantic regression tests exercise symbol resolution, scope restoration, forward and recursive function calls, strict type compatibility, and invalid array usage. Complete source-to-semantic-validation tests and focused LLVM IR lowering tests are included.
 
 Run the test suite with:
 
@@ -317,7 +325,7 @@ cargo fmt --all -- --check
 
 The repository's CI runs formatting checks and the test suite, while the coverage workflow tracks line coverage separately.
 
-> The compiler executable itself is not functional yet: `main.rs` currently prints `Hello, world!`. Scanner, lexer, parser, and semantic analysis are tested as separate components, but no CLI currently accepts a MicroC source file.
+Run `cargo run -- source-examples/your_program.mc` to validate the source and generate `source-examples/your_program.ll`. For supported programs, compile the emitted IR using `clang -x ir source-examples/your_program.ll -o your_program`. The CLI emits IR only; it does not yet invoke Clang or link a native executable. Unsupported language features produce a code generation error.
 
 ## Backend
 
@@ -347,10 +355,10 @@ A handwritten Linux x86-64 backend using the System V ABI and GNU/AT&T assembly 
 - [x] AST covering the V1 syntax supported by the parser
 - [x] Semantic analysis, symbol tables, and lexical scopes
 - [x] Strict expression, argument, assignment, and return type checking
-- [ ] Frontend orchestration (scanner → lexer → parser → semantic analyzer)
-- [ ] End-to-end tests for complete MicroC source files
-- [ ] Compiler CLI for source files and diagnostics
-- [ ] LLVM IR generation
+- [x] Frontend orchestration (scanner → lexer → parser → semantic analyzer)
+- [x] End-to-end tests for complete MicroC source files
+- [x] Basic compiler CLI for source files, diagnostics, and textual LLVM IR
+- [ ] Complete LLVM IR generation (integer arithmetic, returns, and basic blocks implemented)
 - [ ] LLVM toolchain integration
 - [ ] End-to-end native executable generation
 
