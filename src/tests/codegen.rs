@@ -54,17 +54,17 @@ fn emits_unary_negation() {
 fn emits_empty_and_nested_blocks() {
     let ir = lower(b"int main() { ; { ; } { return 7; } }").unwrap();
 
-    assert_eq!(
-        ir,
-        "define i32 @main() {\nentry:\n  ret i32 7\n}\n"
-    );
+    assert_eq!(ir, "define i32 @main() {\nentry:\n  ret i32 7\n}\n");
 }
 
 #[test]
 fn rejects_additional_functions() {
     let result = lower(b"int answer() { return 42; } int main() { return 0; }");
 
-    assert_eq!(result, Err(CodegenError::Unsupported("additional functions")));
+    assert_eq!(
+        result,
+        Err(CodegenError::Unsupported("additional functions"))
+    );
 }
 
 #[test]
@@ -109,8 +109,5 @@ fn detects_missing_return() {
 fn rejects_code_after_an_unconditional_return() {
     let result = lower(b"int main() { return 1; return 2; }");
 
-    assert_eq!(
-        result,
-        Err(CodegenError::UnreachableStatement { line: 1 })
-    );
+    assert_eq!(result, Err(CodegenError::UnreachableStatement { line: 1 }));
 }

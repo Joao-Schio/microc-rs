@@ -27,7 +27,10 @@ impl fmt::Display for CodegenError {
             }
             Self::MissingReturn => write!(f, "function 'main' does not return a value"),
             Self::UnreachableStatement { line } => {
-                write!(f, "LLVM backend does not yet handle unreachable statements at line {line}")
+                write!(
+                    f,
+                    "LLVM backend does not yet handle unreachable statements at line {line}"
+                )
             }
         }
     }

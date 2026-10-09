@@ -8,8 +8,8 @@ impl EmitLlvm for Expression {
     fn emit_llvm(&self, ctx: &mut FunctionContext) -> Result<Operand, CodegenError> {
         match self {
             Self::Integer(value) => {
-                let value = i32::try_from(*value)
-                    .map_err(|_| CodegenError::IntegerOutOfRange(*value))?;
+                let value =
+                    i32::try_from(*value).map_err(|_| CodegenError::IntegerOutOfRange(*value))?;
                 Ok(Operand::Constant(value))
             }
             Self::Unary { op, expression } => {
