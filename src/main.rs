@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod ast;
+mod codegen;
 mod frontend;
 mod frontend_error;
 mod lexer;
@@ -33,9 +34,13 @@ fn run() -> Result<(), Box<dyn Error>> {
 
     let file = File::open(&source_path)?;
 
-    frontend::analyze_source(file)?;
+    let program = frontend::analyze_source(file)?;
+    let ir = codegen::generate_ir(&program)?;
 
-    println!("Frontend validation successful: {}", source_path.display());
+    let output_path = source_path.with_extension("ll");
+    std::fs::write(&output_path, ir)?;
+
+    println!("Generated LLVM IR: {}", output_path.display());
 
     Ok(())
 }

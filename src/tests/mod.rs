@@ -1,6 +1,7 @@
 #[macro_use]
 mod contracts;
 
+mod codegen;
 mod comments;
 mod frontend_error;
 mod frontend_integration;
