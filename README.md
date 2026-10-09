@@ -13,7 +13,7 @@ This project started as an implementation of the lexical analyzer described in t
 
 The goal is not to mechanically translate the reference C implementation into Rust. Instead, MicroC-RS aims to preserve the language semantics while designing the compiler around Rust's type system, ownership model, and modern software-engineering practices.
 
-> **Status:** Work in progress. Scanner and lexer support are in place, and development is currently focused on the parser and typed AST. Expression parsing, function calls, assignments, and `return` statements are implemented.
+> **Status:** Frontend components are implemented and tested individually: scanner, lexer, parser, AST, and semantic analysis (including strict type checking). The next milestone is wiring these phases together so MicroC-RS can validate complete source files. The CLI and LLVM IR backend are not implemented yet.
 
 ## Goals
 
@@ -55,11 +55,11 @@ This includes tools and libraries such as:
 - libraries that provide a ready-made compiler frontend
 - libraries that perform semantic analysis or AST construction for MicroC-RS
 
-The scanner, lexer, parser, AST construction, semantic analysis, and lowering to LLVM IR are implemented directly by MicroC-RS.
+The scanner, lexer, parser, AST construction, and semantic analysis are implemented directly by MicroC-RS; LLVM IR generation will follow the same approach.
 
 External libraries are allowed when they support peripheral concerns rather than replacing compiler implementation work. For example, a crate used for colored diagnostics, command-line parsing, testing, or similar infrastructure is acceptable.
 
-LLVM is the intentional boundary for V1: MicroC-RS generates textual LLVM IR itself and may then invoke the LLVM toolchain to perform native code generation.
+LLVM is the intentional boundary for V1: MicroC-RS will generate textual LLVM IR itself and may then invoke the LLVM toolchain to perform native code generation.
 
 ## Language Scope
 
@@ -114,7 +114,7 @@ Whitespace must not affect tokenization.
 
 ## Architecture
 
-The compiler is being developed as a sequence of explicit phases:
+The project follows this intended compiler pipeline:
 
 ```text
 Source
@@ -132,28 +132,28 @@ Vec<Token>
 Parser
   |
   v
-Typed AST
+AST (syntax)
   |
   v
-Semantic Analysis
+Semantic Analysis (symbol resolution and type checking)
   |
   v
-LLVM IR Generation
+LLVM IR Generation [planned]
   |
   v
-LLVM Toolchain
+LLVM Toolchain [planned]
   |
   v
-Native Executable
+Native Executable [planned]
 ```
 
-Compiler phases communicate through typed in-memory structures rather than intermediate files.
+The scanner, lexer, parser, and semantic analyzer are implemented and tested, but **they are not yet connected by an end-to-end frontend entry point**. The AST preserves source-level syntax; semantic analysis infers types using the available symbols rather than storing inferred types in every expression node.
 
-Representations such as token dumps, AST output, semantic information, and generated LLVM IR may eventually be exposed through the CLI for debugging and inspection, but they are not used as file-based communication mechanisms between compiler stages.
+Compiler phases communicate through typed in-memory structures rather than intermediate files. Token dumps, AST output, semantic diagnostics, and generated LLVM IR may eventually be exposed through the CLI for inspection; they are not used as file-based communication mechanisms between phases.
 
-The initial execution target remains **Linux x86-64**, while the compiler itself is intended to remain runnable on macOS/Apple Silicon. Using LLVM IR keeps the frontend independent from the details of register allocation, calling-convention lowering, stack management, and final machine-code generation.
+The initial execution target remains **Linux x86-64**, while the compiler itself is intended to run on macOS/Apple Silicon. Using LLVM IR keeps the frontend independent of register allocation, calling-convention lowering, stack management, and final machine-code generation.
 
-V1 will favor generating **textual LLVM IR** and delegating native lowering to the LLVM toolchain rather than immediately introducing a Rust LLVM binding. A handwritten x86-64 backend remains a useful future learning milestone, but it is deliberately deferred until the frontend and LLVM-backed compiler are complete.
+V1 will favor generating **textual LLVM IR** and delegating native lowering to the LLVM toolchain rather than introducing a Rust LLVM binding immediately. A handwritten x86-64 backend remains a possible future learning milestone, deliberately deferred until the LLVM-backed compiler is complete.
 
 ## Current Structure
 
@@ -162,21 +162,36 @@ src/
 ├── ast/
 │   ├── expression.rs
 │   ├── mod.rs
+│   ├── program.rs
 │   └── statement.rs
 ├── parser/
 │   ├── expression.rs
+│   ├── mod.rs
+│   └── statement.rs
+├── semantic/
+│   ├── analyzer.rs
 │   └── mod.rs
 ├── tests/
 │   ├── parser/
+│   │   ├── block.rs
+│   │   ├── contracts.rs
+│   │   ├── declaration.rs
+│   │   ├── declaration_array.rs
 │   │   ├── error.rs
 │   │   ├── expression.rs
+│   │   ├── for_statement.rs
+│   │   ├── if_statement.rs
 │   │   ├── mod.rs
+│   │   ├── program.rs
 │   │   └── statement.rs
 │   ├── comments.rs
+│   ├── contracts.rs
 │   ├── helpers.rs
 │   ├── lexer.rs
+│   ├── mod.rs
 │   ├── numeric.rs
 │   ├── reserved_words.rs
+│   ├── token_contract.rs
 │   └── tokenize.rs
 ├── lexer.rs
 ├── main.rs
@@ -214,41 +229,35 @@ Tokens contain their token type, source line, and original lexeme.
 
 ### AST
 
-The AST is represented using typed Rust enums rather than the generic first-child / next-sibling representation used by the reference implementation.
+The AST uses Rust enums and structs instead of the reference compiler's generic first-child / next-sibling representation. It models syntax independently of semantic type inference.
 
-The expression AST currently represents:
+Expression nodes represent integer and character literals, identifiers, unary and binary operations, array access, and function calls.
 
-- integer and character literals
-- identifiers
-- unary operations
-- binary operations
-- array access
-- function calls
-
-The statement AST currently represents:
-
-- assignments to identifiers
-- assignments to array elements
-- `return` statements with optional expressions
+Statement nodes represent assignments, `return`, `print`, `if` / `else`, `for`, nested blocks, and empty statements. Other AST types represent scalar and array declarations, function parameters, function definitions, and the complete program with `main`.
 
 ### Parser
 
-The parser currently supports the complete expression layer needed by the implemented statements, including operator precedence, unary expressions, array access, and function calls.
+The parser handles expression precedence, unary operators, array access, and calls. It also supports assignments, `return`, `print` with an expression or string literal, empty statements, blocks, `if` / `else`, `for`, scalar and array declarations, function parameters, function definitions, and `main` with end-of-file validation.
 
-Statement parsing currently supports:
+`ParserContext` owns token traversal. Expression parsing and statement parsing are separated by their respective parser interfaces, so statements reuse expression parsing instead of reproducing its grammar.
 
-```text
-x = expression;
-array[index] = expression;
-return;
-return expression;
-```
+Invalid syntax produces typed `ParserError` values. Parsing a bare `return;` is syntactically supported, but semantic analysis rejects it for the language's non-void functions.
 
-`ParserContext` owns token traversal, while expression parsing is injected through `TExprParser`. Statement parsing reuses that expression parser instead of duplicating expression grammar.
+### Semantic Analysis
 
-Malformed syntax produces typed `ParserError` values. Parser routines are responsible for consuming their own delimiters, which is enforced by tests that parse consecutive constructs.
+The semantic analyzer resolves names through lexical scopes and a symbol table containing variables, parameters, and functions. It checks for undeclared identifiers and duplicate declarations, supports nested-scope shadowing, and registers functions before analyzing their bodies so forward calls and recursion work.
 
-The next parser work is centered on the remaining statement forms and larger grammar structures such as `print`, blocks, control flow, declarations, functions, and complete programs.
+Expression types are **inferred during semantic analysis**, not baked into `ast::Expression`. The analyzer distinguishes scalar values from arrays and validates:
+
+- operands of unary and binary operations, assignments, and conditions;
+- function-call argument counts and exact parameter types;
+- function return types (including the `int` return type of `main`);
+- array indexing, scalar-versus-array usage, and valid assignment targets;
+- supported `print` argument types.
+
+**MicroC-RS V1 deliberately uses strict `int` and `char` typing.** Arithmetic operands must be integers, and assignments, function arguments, and return values must match their declared types. There are **no implicit conversions** between `int` and `char`, and casts are not part of the V1 grammar. For example, `1 + 'a'` is invalid when used inside an otherwise valid expression.
+
+Semantic failures are represented as typed `SemanticError` values. No LLVM IR is generated yet; this phase currently validates the parsed AST without lowering it.
 
 ## Testing
 
@@ -259,9 +268,9 @@ The testing strategy favors:
 - **contract tests** at architectural boundaries such as scanners, lexers, and expression parsers
 - focused unit tests for individual compiler transformations
 - regression tests for parser cursor and delimiter ownership
-- a smaller number of end-to-end compiler tests as later phases are implemented
+- end-to-end tests using complete MicroC source files when the frontend phases are connected
 
-The parser tests intentionally verify not only AST output but also token consumption. For example, consecutive statement tests ensure that parsing one statement consumes exactly one statement and leaves the parser positioned at the next one.
+The parser tests verify both AST output and token consumption. Semantic regression tests exercise symbol resolution, scope restoration, forward and recursive function calls, strict type compatibility, and invalid array usage. Complete source-to-semantic-validation tests are the next testing milestone.
 
 Run the test suite with:
 
@@ -308,7 +317,7 @@ cargo fmt --all -- --check
 
 The repository's CI runs formatting checks and the test suite, while the coverage workflow tracks line coverage separately.
 
-> The compiler executable itself is not functional yet. `main.rs` remains a placeholder while the compiler frontend is developed.
+> The compiler executable itself is not functional yet: `main.rs` currently prints `Hello, world!`. Scanner, lexer, parser, and semantic analysis are tested as separate components, but no CLI currently accepts a MicroC source file.
 
 ## Backend
 
@@ -328,21 +337,22 @@ A handwritten Linux x86-64 backend using the System V ABI and GNU/AT&T assembly 
 
 - [x] Scanner foundation
 - [x] Lexical analyzer and typed lexical errors
-- [x] Expression AST
-- [x] Expression parser and operator precedence
-- [x] Function-call parsing
-- [x] Assignment statements
-- [x] `return` statements
-- [ ] Remaining statements (`print`, empty statement, blocks)
-- [ ] Control flow (`if` / `else`, `for`)
-- [ ] Variable declarations
-- [ ] Function definitions and complete program parsing
-- [ ] Complete typed AST
-- [ ] Semantic analysis and symbol tables
+- [x] Expression AST and parser with operator precedence
+- [x] Function-call and array-access parsing
+- [x] Assignment, `return`, and `print` statements
+- [x] Empty statements and nested blocks
+- [x] Control flow (`if` / `else`, `for`)
+- [x] Scalar and array declarations
+- [x] Function definitions, parameters, and complete program parsing
+- [x] AST covering the V1 syntax supported by the parser
+- [x] Semantic analysis, symbol tables, and lexical scopes
+- [x] Strict expression, argument, assignment, and return type checking
+- [ ] Frontend orchestration (scanner → lexer → parser → semantic analyzer)
+- [ ] End-to-end tests for complete MicroC source files
+- [ ] Compiler CLI for source files and diagnostics
 - [ ] LLVM IR generation
 - [ ] LLVM toolchain integration
-- [ ] Compiler CLI
-- [ ] End-to-end Micro C programs
+- [ ] End-to-end native executable generation
 
 ### Future handwritten backend
 
