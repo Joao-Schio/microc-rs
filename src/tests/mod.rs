@@ -7,5 +7,6 @@ mod lexer;
 mod numeric;
 mod parser;
 mod reserved_words;
+pub(crate) mod semantic;
 mod token_contract;
 mod tokenize;
