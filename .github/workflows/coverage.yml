@@ -30,6 +30,9 @@ jobs:
       - name: Generate coverage summary
         run: cargo llvm-cov --workspace --all-features --json --summary-only --output-path coverage.json
 
+      - name: Print per-file coverage summary
+        run: cargo llvm-cov report
+
       - name: Generate coverage badge
         run: python3 .github/scripts/generate_coverage_badge.py coverage.json .github/badges/coverage.svg
 

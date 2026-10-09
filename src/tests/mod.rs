@@ -3,6 +3,7 @@ mod contracts;
 
 mod codegen;
 mod comments;
+mod diagnostics;
 mod frontend_error;
 mod frontend_integration;
 mod helpers;
