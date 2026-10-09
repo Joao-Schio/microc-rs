@@ -1,6 +1,8 @@
 mod context;
 mod expression;
 mod statement;
+#[cfg(test)]
+mod tests;
 
 use std::{error::Error, fmt};
 
