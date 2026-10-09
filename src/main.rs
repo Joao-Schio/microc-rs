@@ -10,6 +10,7 @@ mod semantic;
 #[cfg(test)]
 mod tests;
 mod token;
+mod frontend;
 
 fn main() {
     println!("Hello, world!");
