@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 
 mod ast;
+mod frontend_error;
 mod lexer;
 mod parser;
 mod scanner;
