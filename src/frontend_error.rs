@@ -1,10 +1,7 @@
 use std::{error::Error, fmt};
 
 use crate::{
-    lexer::LexerError,
-    parser::ParserError,
-    scanner::ScannerError,
-    semantic::SemanticError,
+    lexer::LexerError, parser::ParserError, scanner::ScannerError, semantic::SemanticError,
 };
 
 /// An error reported by a compiler frontend phase.

@@ -76,7 +76,10 @@ fn frontend_error_wraps_lexer_error_and_exposes_source() {
     .into();
 
     assert!(matches!(&error, FrontendError::Lexer(_)));
-    assert_eq!(error.to_string(), "unterminated string at line 4, column 10");
+    assert_eq!(
+        error.to_string(),
+        "unterminated string at line 4, column 10"
+    );
     assert_eq!(error.source().unwrap().to_string(), error.to_string());
 }
 

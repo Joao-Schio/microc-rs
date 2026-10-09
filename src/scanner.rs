@@ -100,7 +100,6 @@ where
     }
 }
 
-
 #[cfg(test)]
 #[path = "tests/scanner.rs"]
 mod tests;
