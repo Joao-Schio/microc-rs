@@ -396,7 +396,6 @@ impl<'a> TSemanticAnalyzer<'a> for SemanticAnalyzer<'a> {
     }
 }
 
-
 #[cfg(test)]
 #[path = "../tests/semantic/analyzer.rs"]
 mod tests;
