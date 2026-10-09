@@ -33,11 +33,6 @@ jobs:
       - name: Print per-file coverage summary
         run: cargo llvm-cov report
 
-      - name: List uncovered source lines (temporary diagnostic)
-        run: |
-          cargo llvm-cov report --lcov --output-path coverage.lcov
-          python3 .github/scripts/report_uncovered_lines.py coverage.lcov
-
       - name: Generate coverage badge
         run: python3 .github/scripts/generate_coverage_badge.py coverage.json .github/badges/coverage.svg
 

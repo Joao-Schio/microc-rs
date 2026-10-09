@@ -1,8 +1,5 @@
 //! Stable, user-facing compiler diagnostics and source error chains.
-use std::{
-    error::Error,
-    io,
-};
+use std::{error::Error, io};
 
 use crate::{
     ast::{
@@ -183,10 +180,7 @@ fn scanner_io_error_preserves_its_source_through_lexer() {
     assert_eq!(lexer.to_string(), "scanner I/O error: read failed");
     let scanner_source = lexer.source().expect("lexer keeps its scanner cause");
     assert_eq!(scanner_source.to_string(), "scanner I/O error: read failed");
-    assert_eq!(
-        scanner_source.source().unwrap().to_string(),
-        "read failed"
-    );
+    assert_eq!(scanner_source.source().unwrap().to_string(), "read failed");
 }
 
 #[test]
