@@ -15,10 +15,8 @@ struct Fixture {
 impl Fixture {
     fn new() -> Self {
         let id = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
-        let directory = std::env::temp_dir().join(format!(
-            "microc-rs-cli-{}-{id}",
-            std::process::id()
-        ));
+        let directory =
+            std::env::temp_dir().join(format!("microc-rs-cli-{}-{id}", std::process::id()));
         fs::create_dir(&directory).expect("create isolated test directory");
         Self { directory }
     }
